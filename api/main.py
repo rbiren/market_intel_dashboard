@@ -922,11 +922,14 @@ class FabricGraphQLClient:
         dealers_for_inventory = self.fetch_dimension_data_for_skeys(
             "dim_dealerships", "dim_dealership_skey",
             inventory_dealer_skeys,
-            ["dim_dealership_skey", "dealer_group", "state"]
+            ["dim_dealership_skey", "dealer_group", "state", "region", "city", "county"]
         )
 
         by_dealer_group = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
         by_state = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
+        by_region = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
+        by_city = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
+        by_county = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
         missing_dealer_count = 0
         missing_dealer_inventory = 0
 
@@ -940,6 +943,9 @@ class FabricGraphQLClient:
 
             dg = dealer.get("dealer_group")
             state = dealer.get("state")
+            region = dealer.get("region")
+            city = dealer.get("city")
+            county = dealer.get("county")
 
             if not dg and not state:
                 missing_dealer_count += 1
@@ -957,9 +963,27 @@ class FabricGraphQLClient:
                 if avg_p > 0:
                     by_state[state]["avg_prices"].append((avg_p, count))
 
+            if region:
+                by_region[region]["count"] += count
+                by_region[region]["total_value"] += total
+                if avg_p > 0:
+                    by_region[region]["avg_prices"].append((avg_p, count))
+
+            if city:
+                by_city[city]["count"] += count
+                by_city[city]["total_value"] += total
+                if avg_p > 0:
+                    by_city[city]["avg_prices"].append((avg_p, count))
+
+            if county:
+                by_county[county]["count"] += count
+                by_county[county]["total_value"] += total
+                if avg_p > 0:
+                    by_county[county]["avg_prices"].append((avg_p, count))
+
         if missing_dealer_count > 0:
             print(f"  WARNING: {missing_dealer_count} dealers not found in dim_dealerships ({missing_dealer_inventory} inventory units)")
-        print(f"  Dealer aggregations: {len(dealer_groups)} dealer groups -> {len(by_dealer_group)} dealer_groups, {len(by_state)} states")
+        print(f"  Dealer aggregations: {len(dealer_groups)} dealer groups -> {len(by_dealer_group)} dealer_groups, {len(by_state)} states, {len(by_region)} regions, {len(by_city)} cities")
 
         def format_agg(agg_dict, limit=None):
             result = []
@@ -989,7 +1013,10 @@ class FabricGraphQLClient:
             "by_dealer_group": format_agg(by_dealer_group, 10),
             "by_manufacturer": format_agg(by_manufacturer, 10),
             "by_condition": sorted(by_condition, key=lambda x: x["count"], reverse=True),
-            "by_state": format_agg(by_state, 10)
+            "by_state": format_agg(by_state, 10),
+            "by_region": format_agg(by_region, 10),
+            "by_city": format_agg(by_city, 20),  # More cities, so show top 20
+            "by_county": format_agg(by_county, 15)
         }
 
         elapsed = (datetime.now() - start).total_seconds()
@@ -1162,11 +1189,14 @@ class FabricGraphQLClient:
             dealers_for_inventory = self.fetch_dimension_data_for_skeys(
                 "dim_dealerships", "dim_dealership_skey",
                 inventory_dealer_skeys,
-                ["dim_dealership_skey", "dealer_group", "state"]
+                ["dim_dealership_skey", "dealer_group", "state", "region", "city", "county"]
             )
 
             by_dealer_group = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
             by_state = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
+            by_region = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
+            by_city = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
+            by_county = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
 
             for dkey in inventory_dealer_skeys:
                 aggs = dealer_skey_to_aggs.get(dkey, {})
@@ -1188,6 +1218,27 @@ class FabricGraphQLClient:
                     by_state[state]["total_value"] += total
                     if avg_p > 0:
                         by_state[state]["avg_prices"].append((avg_p, count))
+
+                region = dealer.get("region")
+                if region:
+                    by_region[region]["count"] += count
+                    by_region[region]["total_value"] += total
+                    if avg_p > 0:
+                        by_region[region]["avg_prices"].append((avg_p, count))
+
+                city = dealer.get("city")
+                if city:
+                    by_city[city]["count"] += count
+                    by_city[city]["total_value"] += total
+                    if avg_p > 0:
+                        by_city[city]["avg_prices"].append((avg_p, count))
+
+                county = dealer.get("county")
+                if county:
+                    by_county[county]["count"] += count
+                    by_county[county]["total_value"] += total
+                    if avg_p > 0:
+                        by_county[county]["avg_prices"].append((avg_p, count))
 
             # Format results
             def format_agg(agg_dict, limit=None):
@@ -1218,7 +1269,10 @@ class FabricGraphQLClient:
                 "by_dealer_group": format_agg(by_dealer_group, 10),
                 "by_manufacturer": format_agg(by_manufacturer, 10),
                 "by_condition": sorted(by_condition, key=lambda x: x["count"], reverse=True),
-                "by_state": format_agg(by_state, 10)
+                "by_state": format_agg(by_state, 10),
+                "by_region": format_agg(by_region, 10),
+                "by_city": format_agg(by_city, 20),
+                "by_county": format_agg(by_county, 15)
             }
 
         # Build caches for condition filters
@@ -1261,6 +1315,9 @@ class FabricGraphQLClient:
         by_condition = defaultdict(lambda: {"count": 0, "total_value": 0, "min_price": float('inf'), "max_price": 0})
         by_dealer_group = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
         by_state = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
+        by_region = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
+        by_city = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
+        by_county = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
         by_manufacturer = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
 
         # Process in batches
@@ -1325,7 +1382,7 @@ class FabricGraphQLClient:
             dealer_skeys = [g.get("fields", {}).get("dim_dealership_skey") for g in dealer_groups if g.get("fields", {}).get("dim_dealership_skey")]
             dealers_data = self.fetch_dimension_data_for_skeys(
                 "dim_dealerships", "dim_dealership_skey", dealer_skeys,
-                ["dim_dealership_skey", "dealer_group", "state"]
+                ["dim_dealership_skey", "dealer_group", "state", "region", "city", "county"]
             )
 
             for g in dealer_groups:
@@ -1349,6 +1406,27 @@ class FabricGraphQLClient:
                     by_state[state]["total_value"] += total
                     if avg_p > 0:
                         by_state[state]["avg_prices"].append((avg_p, count))
+
+                region = dealer.get("region")
+                if region:
+                    by_region[region]["count"] += count
+                    by_region[region]["total_value"] += total
+                    if avg_p > 0:
+                        by_region[region]["avg_prices"].append((avg_p, count))
+
+                city = dealer.get("city")
+                if city:
+                    by_city[city]["count"] += count
+                    by_city[city]["total_value"] += total
+                    if avg_p > 0:
+                        by_city[city]["avg_prices"].append((avg_p, count))
+
+                county = dealer.get("county")
+                if county:
+                    by_county[county]["count"] += count
+                    by_county[county]["total_value"] += total
+                    if avg_p > 0:
+                        by_county[county]["avg_prices"].append((avg_p, count))
 
         # Get manufacturers from the product skeys we already have
         products_data = self.fetch_dimension_data_for_skeys(
@@ -1440,7 +1518,10 @@ class FabricGraphQLClient:
             "by_dealer_group": format_agg(by_dealer_group, 10),
             "by_manufacturer": format_agg(by_manufacturer, 10),
             "by_condition": sorted(cond_list, key=lambda x: x["count"], reverse=True),
-            "by_state": format_agg(by_state, 10)
+            "by_state": format_agg(by_state, 10),
+            "by_region": format_agg(by_region, 10),
+            "by_city": format_agg(by_city, 20),
+            "by_county": format_agg(by_county, 15)
         }
 
     def load_inventory_cache(self):
@@ -1486,6 +1567,9 @@ class FabricGraphQLClient:
                 "manufacturer_logo_small": None,  # Excluded from nested query to avoid 64MB limit
                 "dealer_group": dealer.get("dealer_group"),
                 "state": dealer.get("state"),
+                "region": dealer.get("region"),
+                "city": dealer.get("city"),
+                "county": dealer.get("county"),
                 "dealership": dealer.get("dealership"),
                 "location": location,
                 "dim_product_skey": item.get("dim_product_skey"),
@@ -1598,6 +1682,9 @@ class FabricGraphQLClient:
         by_manufacturer = defaultdict(lambda: {"count": 0, "total_value": 0, "prices": []})
         by_condition = defaultdict(lambda: {"count": 0, "total_value": 0, "prices": []})
         by_state = defaultdict(lambda: {"count": 0, "total_value": 0, "prices": []})
+        by_region = defaultdict(lambda: {"count": 0, "total_value": 0, "prices": []})
+        by_city = defaultdict(lambda: {"count": 0, "total_value": 0, "prices": []})
+        by_county = defaultdict(lambda: {"count": 0, "total_value": 0, "prices": []})
 
         total_value = 0.0
         all_prices = []
@@ -1632,6 +1719,18 @@ class FabricGraphQLClient:
                 by_state[item["state"]]["count"] += 1
                 by_state[item["state"]]["total_value"] += price
 
+            if item.get("region"):
+                by_region[item["region"]]["count"] += 1
+                by_region[item["region"]]["total_value"] += price
+
+            if item.get("city"):
+                by_city[item["city"]]["count"] += 1
+                by_city[item["city"]]["total_value"] += price
+
+            if item.get("county"):
+                by_county[item["county"]]["count"] += 1
+                by_county[item["county"]]["total_value"] += price
+
         def format_agg(agg_dict, limit=10):
             result = []
             for key, data in sorted(agg_dict.items(), key=lambda x: x[1]["count"], reverse=True):
@@ -1657,6 +1756,9 @@ class FabricGraphQLClient:
             "by_manufacturer": format_agg(by_manufacturer, 10),
             "by_condition": format_agg(by_condition),
             "by_state": format_agg(by_state, 10),
+            "by_region": format_agg(by_region, 10),
+            "by_city": format_agg(by_city, 20),
+            "by_county": format_agg(by_county, 15),
         }
 
     def get_native_aggregations(self) -> dict:
@@ -1887,6 +1989,9 @@ class AggregatedSummaryResponse(BaseModel):
     by_manufacturer: List[AggregationItem]
     by_condition: List[AggregationItem]
     by_state: List[AggregationItem]
+    by_region: Optional[List[AggregationItem]] = None
+    by_city: Optional[List[AggregationItem]] = None
+    by_county: Optional[List[AggregationItem]] = None
 
 
 # Initialize clients

@@ -29,6 +29,9 @@ interface AggregatedSummary {
   by_manufacturer: AggregationItem[]
   by_condition: AggregationItem[]
   by_state: AggregationItem[]
+  by_region?: AggregationItem[]
+  by_city?: AggregationItem[]
+  by_county?: AggregationItem[]
 }
 
 interface InventoryItem {
@@ -389,7 +392,55 @@ function AnalyticsContent({ summaryData, loading: initialLoading }: AnalyticsTab
         </ChartCard>
       </div>
 
-      {/* Row 3: Price Distribution + Dealer Groups */}
+      {/* Row 3: Geographic Deep Dive - Region + City */}
+      {(displayData?.by_region?.length || displayData?.by_city?.length) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ChartCard
+            title="Distribution by Region"
+            subtitle="Units across regions"
+            icon="🌍"
+            loading={loading}
+          >
+            {displayData?.by_region && displayData.by_region.length > 0 ? (
+              <TopBarChart
+                data={displayData.by_region}
+                dimension="region"
+                dataKey="count"
+                color="#577d91"
+                maxItems={10}
+                layout="vertical"
+              />
+            ) : (
+              <div className="text-center text-[var(--thor-medium-gray)] py-8">
+                No region data available
+              </div>
+            )}
+          </ChartCard>
+
+          <ChartCard
+            title="Top Cities"
+            subtitle="Highest inventory concentration"
+            icon="🏙️"
+            loading={loading}
+          >
+            {displayData?.by_city && displayData.by_city.length > 0 ? (
+              <TopBarChart
+                data={displayData.by_city}
+                dimension="city"
+                dataKey="count"
+                color="#a46807"
+                maxItems={10}
+              />
+            ) : (
+              <div className="text-center text-[var(--thor-medium-gray)] py-8">
+                No city data available
+              </div>
+            )}
+          </ChartCard>
+        </div>
+      )}
+
+      {/* Row 4: Price Distribution + Dealer Groups */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard
           title="Price Distribution"

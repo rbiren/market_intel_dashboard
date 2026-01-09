@@ -249,6 +249,9 @@ export interface AggregatedSummary {
   by_manufacturer: AggregationItem[]
   by_condition: AggregationItem[]
   by_state: AggregationItem[]
+  by_region?: AggregationItem[]
+  by_city?: AggregationItem[]
+  by_county?: AggregationItem[]
 }
 
 interface UseAggregatedSummaryOptions {

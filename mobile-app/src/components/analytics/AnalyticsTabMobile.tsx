@@ -416,6 +416,8 @@ function AnalyticsMobileContent({ summaryData, loading: initialLoading }: Analyt
     manufacturers: false,
     dealers: false,
     states: false,
+    regions: false,
+    cities: false,
   })
 
   const sectionRefs = {
@@ -658,6 +660,52 @@ function AnalyticsMobileContent({ summaryData, loading: initialLoading }: Analyt
           </div>
         )}
       </div>
+
+      {/* Regions Section */}
+      {displayData?.by_region && displayData.by_region.length > 0 && (
+        <div className="scroll-mt-4 space-y-3">
+          <MobileSectionHeader
+            title="Regional Distribution"
+            icon="🌍"
+            expanded={expandedSections.regions}
+            onToggle={() => toggleSection('regions')}
+            count={displayData.by_region.length}
+          />
+          {expandedSections.regions && (
+            <div className="bg-gradient-to-br from-[var(--thor-steel-blue)]/10 to-[var(--thor-sage)]/10 rounded-2xl border border-[var(--thor-border-gray)] p-4">
+              <MobileBarChart
+                data={displayData.by_region}
+                onItemClick={(item) => handleItemClick('region', item)}
+                activeFilter={filter.dimension === 'region' ? activeFilterValue : null}
+                maxItems={10}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Cities Section */}
+      {displayData?.by_city && displayData.by_city.length > 0 && (
+        <div className="scroll-mt-4 space-y-3">
+          <MobileSectionHeader
+            title="Top Cities"
+            icon="🏙️"
+            expanded={expandedSections.cities}
+            onToggle={() => toggleSection('cities')}
+            count={displayData.by_city.length}
+          />
+          {expandedSections.cities && (
+            <div className="bg-gradient-to-br from-[var(--thor-gold)]/10 to-[var(--thor-sage)]/10 rounded-2xl border border-[var(--thor-border-gray)] p-4">
+              <MobileBarChart
+                data={displayData.by_city}
+                onItemClick={(item) => handleItemClick('city', item)}
+                activeFilter={filter.dimension === 'city' ? activeFilterValue : null}
+                maxItems={12}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Avg Price by Type - Always Visible */}
       <div className="space-y-3">
