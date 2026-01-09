@@ -242,18 +242,30 @@ function VisxBarChart({
   onSelect?: (name: string) => void
   color?: string
 }) {
+  const {
+    tooltipOpen,
+    tooltipLeft,
+    tooltipTop,
+    tooltipData,
+    hideTooltip,
+    showTooltip,
+  } = useTooltip<AggregationItem>()
+
   const sortedData = useMemo(() =>
     [...data].sort((a, b) => b.count - a.count).slice(0, 8),
     [data]
   )
 
   return (
+    <div className="relative">
     <ParentSize>
       {({ width }) => {
         const height = 300
         const margin = { top: 20, right: 30, bottom: 40, left: 120 }
-        const xMax = width - margin.left - margin.right
-        const yMax = height - margin.top - margin.bottom
+        const xMax = Math.max(0, width - margin.left - margin.right)
+        const yMax = Math.max(0, height - margin.top - margin.bottom)
+
+        if (xMax <= 0 || yMax <= 0) return null
 
         const xScale = scaleLinear({
           domain: [0, Math.max(...sortedData.map(d => d.count))],
@@ -280,7 +292,7 @@ function VisxBarChart({
 
               {sortedData.map((d) => {
                 const barHeight = yScale.bandwidth()
-                const barWidth = xScale(d.count)
+                const barWidth = Math.max(0, xScale(d.count) || 0)
                 const barY = yScale(d.name) || 0
 
                 return (
@@ -338,6 +350,25 @@ function VisxBarChart({
         )
       }}
     </ParentSize>
+    {tooltipOpen && tooltipData && (
+      <TooltipWithBounds
+        top={tooltipTop}
+        left={tooltipLeft}
+        style={{
+          ...defaultStyles,
+          backgroundColor: COLORS.charcoal,
+          color: COLORS.offWhite,
+          borderRadius: '8px',
+          padding: '8px 12px',
+        }}
+      >
+        <div className="text-xs">
+          <div className="font-semibold">{tooltipData.name}</div>
+          <div>{formatNumber(tooltipData.count)} units</div>
+        </div>
+      </TooltipWithBounds>
+    )}
+    </div>
   )
 }
 

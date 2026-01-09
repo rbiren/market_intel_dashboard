@@ -2,7 +2,7 @@
 // Enterprise dashboards, extensive chart types, great theming
 
 import { useState, useEffect, useCallback } from 'react'
-import { Pie, Column, Bar, Area, Radar, Liquid } from '@ant-design/charts'
+import { Pie, Column, Bar, Area, Radar } from '@ant-design/charts'
 import { CrossFilterProvider, useCrossFilter } from '../../context/CrossFilterContext'
 
 const API_BASE = 'http://localhost:8000'
@@ -76,12 +76,7 @@ function AntVPieChart({ data, onSelect }: { data: AggregationItem[], onSelect?: 
     radius: 0.9,
     innerRadius: 0.6,
     color: RV_COLORS,
-    label: {
-      type: 'inner',
-      offset: '-50%',
-      content: ({ percent }: { percent: number }) => `${(percent * 100).toFixed(0)}%`,
-      style: { textAlign: 'center', fontSize: 11, fill: '#fff' },
-    },
+    label: false,
     legend: {
       position: 'bottom' as const,
       itemName: { style: { fill: THOR_COLORS.warmGray } },
@@ -301,26 +296,61 @@ function AntVRadarChart({ data }: { data: AggregationItem[] }) {
   return <Radar {...config} height={280} />
 }
 
-// AntV Liquid Gauge
+// CSS-based Radial Gauge (replaces Liquid which has compatibility issues)
 function AntVLiquidGauge({ percent, title }: { percent: number, title: string }) {
-  const config = {
-    percent: percent / 100,
-    color: THOR_COLORS.sage,
-    outline: { border: 2, distance: 4 },
-    wave: { length: 128 },
-    statistic: {
-      title: {
-        content: title,
-        style: { color: THOR_COLORS.warmGray, fontSize: '12px' },
-      },
-      content: {
-        content: `${percent.toFixed(0)}%`,
-        style: { color: THOR_COLORS.charcoal, fontSize: '24px', fontWeight: 700 },
-      },
-    },
-  }
+  const circumference = 2 * Math.PI * 70 // radius = 70
+  const strokeDashoffset = circumference - (percent / 100) * circumference
 
-  return <Liquid {...config} height={160} />
+  return (
+    <div className="flex flex-col items-center justify-center" style={{ height: 160 }}>
+      <svg width="160" height="140" viewBox="0 0 160 140">
+        {/* Background circle */}
+        <circle
+          cx="80"
+          cy="80"
+          r="70"
+          fill="none"
+          stroke={THOR_COLORS.borderGray}
+          strokeWidth="8"
+        />
+        {/* Progress circle */}
+        <circle
+          cx="80"
+          cy="80"
+          r="70"
+          fill="none"
+          stroke={THOR_COLORS.sage}
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          transform="rotate(-90 80 80)"
+          style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+        />
+        {/* Percentage text */}
+        <text
+          x="80"
+          y="75"
+          textAnchor="middle"
+          fontSize="28"
+          fontWeight="700"
+          fill={THOR_COLORS.charcoal}
+        >
+          {percent.toFixed(0)}%
+        </text>
+        {/* Title text */}
+        <text
+          x="80"
+          y="100"
+          textAnchor="middle"
+          fontSize="11"
+          fill={THOR_COLORS.warmGray}
+        >
+          {title}
+        </text>
+      </svg>
+    </div>
+  )
 }
 
 // KPI Card
