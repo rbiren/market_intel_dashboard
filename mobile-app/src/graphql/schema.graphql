@@ -1,0 +1,2961 @@
+"""
+The `@oneOf` directive is used within the type system definition language
+ to indicate:
+
+ - an Input Object is a Oneof Input Object, or
+ - an Object Type's Field is a Oneof Field.
+"""
+directive @oneOf on INPUT_OBJECT
+
+"""
+The purpose of the `cost` directive is to define a `weight` for GraphQL types, fields, and arguments. Static analysis can use these weights when calculating the overall cost of a query or response.
+"""
+directive @cost(
+  """
+  The `weight` argument defines what value to add to the overall cost for every appearance, or possible appearance, of a type, field, argument, etc.
+  """
+  weight: String!
+) on SCALAR | OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION | ENUM | INPUT_FIELD_DEFINITION
+
+"""A directive to indicate the primary key field of an item."""
+directive @primaryKey(
+  """The underlying database type."""
+  databaseType: String
+) on FIELD_DEFINITION
+
+"""A directive to indicate the enabled state of a node."""
+directive @isEnabled(
+  """The enabled state of the query or mutation."""
+  enabledValue: Boolean
+) on FIELD_DEFINITION
+
+"""
+A directive to indicate the type maps to a storable entity not a nested entity.
+"""
+directive @model(
+  """Underlying name of the database entity."""
+  name: String
+) on OBJECT | FIELD_DEFINITION
+
+"""GroupBy type for dim_date_period"""
+type dim_date_periodGroupBy {
+  """Grouped fields from dim_date_period"""
+  fields: dim_date_period
+
+  """Aggregations for dim_date_period"""
+  aggregations: dim_date_periodAggregations
+}
+
+"""Order by input for dim_date GraphQL type"""
+input dim_dateOrderByInput {
+  """Order by options for dim_date_skey"""
+  dim_date_skey: OrderBy
+
+  """Order by options for calendar_date"""
+  calendar_date: OrderBy
+
+  """Order by options for year"""
+  year: OrderBy
+
+  """Order by options for quarter"""
+  quarter: OrderBy
+
+  """Order by options for quarter_year"""
+  quarter_year: OrderBy
+
+  """Order by options for month_number"""
+  month_number: OrderBy
+
+  """Order by options for month_name"""
+  month_name: OrderBy
+
+  """Order by options for month_key"""
+  month_key: OrderBy
+
+  """Order by options for week_of_year"""
+  week_of_year: OrderBy
+
+  """Order by options for weekday"""
+  weekday: OrderBy
+
+  """Order by options for day_of_week"""
+  day_of_week: OrderBy
+
+  """Order by options for day_of_month"""
+  day_of_month: OrderBy
+
+  """Order by options for day_of_year"""
+  day_of_year: OrderBy
+
+  """Order by options for is_weekend"""
+  is_weekend: OrderBy
+
+  """Order by options for is_last_day_of_month"""
+  is_last_day_of_month: OrderBy
+
+  """Order by options for first_day_of_month"""
+  first_day_of_month: OrderBy
+
+  """Order by options for last_day_of_month"""
+  last_day_of_month: OrderBy
+
+  """Order by options for month_name_abbr"""
+  month_name_abbr: OrderBy
+
+  """Order by options for fiscal_year"""
+  fiscal_year: OrderBy
+
+  """Order by options for fiscal_month"""
+  fiscal_month: OrderBy
+
+  """Order by options for fiscal_quarter"""
+  fiscal_quarter: OrderBy
+
+  """Order by options for fiscal_period"""
+  fiscal_period: OrderBy
+
+  """Order by options for month_year"""
+  month_year: OrderBy
+}
+
+"""Order by input for fact_statistical_survey_registration GraphQL type"""
+input fact_statistical_survey_registrationOrderByInput {
+  """Order by options for unique_number"""
+  unique_number: OrderBy
+
+  """Order by options for registration_date_skey"""
+  registration_date_skey: OrderBy
+
+  """Order by options for rolling_3_months_registration_date"""
+  rolling_3_months_registration_date: OrderBy
+
+  """Order by options for created_or_updated_timestamp"""
+  created_or_updated_timestamp: OrderBy
+
+  """Order by options for new_used"""
+  new_used: OrderBy
+
+  """Order by options for lien"""
+  lien: OrderBy
+
+  """Order by options for is_rental"""
+  is_rental: OrderBy
+
+  """Order by options for is_thor"""
+  is_thor: OrderBy
+
+  """Order by options for motorized_towable"""
+  motorized_towable: OrderBy
+
+  """Order by options for thor_operating_company"""
+  thor_operating_company: OrderBy
+
+  """Order by options for model_year"""
+  model_year: OrderBy
+
+  """Order by options for rv_type"""
+  rv_type: OrderBy
+
+  """Order by options for rv_subtype"""
+  rv_subtype: OrderBy
+
+  """Order by options for manufacturer"""
+  manufacturer: OrderBy
+
+  """Order by options for division"""
+  division: OrderBy
+
+  """Order by options for rv_model"""
+  rv_model: OrderBy
+
+  """Order by options for drive_type"""
+  drive_type: OrderBy
+
+  """Order by options for number_of_axles"""
+  number_of_axles: OrderBy
+
+  """Order by options for chassis"""
+  chassis: OrderBy
+
+  """Order by options for chassis_model"""
+  chassis_model: OrderBy
+
+  """Order by options for engine"""
+  engine: OrderBy
+
+  """Order by options for fuel"""
+  fuel: OrderBy
+
+  """Order by options for length"""
+  length: OrderBy
+
+  """Order by options for gross_vehicle_weight"""
+  gross_vehicle_weight: OrderBy
+
+  """Order by options for dealer_group"""
+  dealer_group: OrderBy
+
+  """Order by options for dealership"""
+  dealership: OrderBy
+
+  """Order by options for dealership_bta"""
+  dealership_bta: OrderBy
+
+  """Order by options for dealership_city"""
+  dealership_city: OrderBy
+
+  """Order by options for dealership_county"""
+  dealership_county: OrderBy
+
+  """Order by options for dealership_state"""
+  dealership_state: OrderBy
+
+  """Order by options for placement_bta"""
+  placement_bta: OrderBy
+
+  """Order by options for placement_city"""
+  placement_city: OrderBy
+
+  """Order by options for placement_county"""
+  placement_county: OrderBy
+
+  """Order by options for placement_state"""
+  placement_state: OrderBy
+
+  """Order by options for placement_zip"""
+  placement_zip: OrderBy
+
+  """Order by options for price_group"""
+  price_group: OrderBy
+
+  """Order by options for price"""
+  price: OrderBy
+
+  """Order by options for registration_count"""
+  registration_count: OrderBy
+
+  """Order by options for dealership_country"""
+  dealership_country: OrderBy
+
+  """Order by options for placement_country"""
+  placement_country: OrderBy
+}
+
+"""Order by input for dim_date_period GraphQL type"""
+input dim_date_periodOrderByInput {
+  """Order by options for date_period"""
+  date_period: OrderBy
+
+  """Order by options for sort_order"""
+  sort_order: OrderBy
+
+  """Order by options for dim_current_date_skey"""
+  dim_current_date_skey: OrderBy
+
+  """Order by options for dim_previous_date_skey"""
+  dim_previous_date_skey: OrderBy
+}
+
+"""Aggregation type for dim_date_period"""
+type dim_date_periodAggregations {
+  """Maximum value for numeric fields"""
+  max(
+    """Field to aggregate on"""
+    field: dim_date_periodNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: LongFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Minimum value for numeric fields"""
+  min(
+    """Field to aggregate on"""
+    field: dim_date_periodNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: LongFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Average value"""
+  avg(
+    """Field to aggregate on"""
+    field: dim_date_periodNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: LongFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Sum of values"""
+  sum(
+    """Field to aggregate on"""
+    field: dim_date_periodNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: LongFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Count of numeric values"""
+  count(
+    """Field to aggregate on"""
+    field: dim_date_periodNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: LongFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Int
+}
+
+"""GroupBy type for fact_inventory_current"""
+type fact_inventory_currentGroupBy {
+  """Grouped fields from fact_inventory_current"""
+  fields: fact_inventory_current
+
+  """Aggregations for fact_inventory_current"""
+  aggregations: fact_inventory_currentAggregations
+}
+
+"""Scalar fields available in dim_date"""
+enum dim_dateScalarFields {
+  dim_date_skey
+  calendar_date
+  year
+  quarter
+  quarter_year
+  month_number
+  month_name
+  month_key
+  week_of_year
+  weekday
+  day_of_week
+  day_of_month
+  day_of_year
+  is_weekend
+  is_last_day_of_month
+  first_day_of_month
+  last_day_of_month
+  month_name_abbr
+  fiscal_year
+  fiscal_month
+  fiscal_quarter
+  fiscal_period
+  month_year
+}
+
+"""Input type for adding String filters"""
+input StringFilterInput {
+  """Equals"""
+  eq: String
+
+  """Contains"""
+  contains: String
+
+  """Not Contains"""
+  notContains: String
+
+  """Starts With"""
+  startsWith: String
+
+  """Ends With"""
+  endsWith: String
+
+  """Not Equals"""
+  neq: String
+
+  """Not null test"""
+  isNull: Boolean
+
+  """In"""
+  in: [String]
+}
+
+type fact_inventory_current {
+  stock_number: String
+  dim_dealership_skey: Int
+  dim_product_skey: Int
+  first_seen_date: DateTime
+  last_seen_date: DateTime
+  days_on_lot: Int
+  days_in_pending: Long
+  price: Decimal
+  median_price: Decimal
+  overpriced_unit: Int
+  current_stock: Int
+  condition: String
+  amount_over_median: Decimal
+  percent_over_median: Decimal
+}
+
+"""
+The `Short` scalar type represents non-fractional signed whole 16-bit numeric values. Short can represent values between -(2^15) and 2^15 - 1.
+"""
+scalar Short
+
+"""Filter input for dim_date GraphQL type"""
+input dim_dateFilterInput {
+  """Filter options for dim_date_skey"""
+  dim_date_skey: IntFilterInput
+
+  """Filter options for calendar_date"""
+  calendar_date: DateTimeFilterInput
+
+  """Filter options for year"""
+  year: IntFilterInput
+
+  """Filter options for quarter"""
+  quarter: StringFilterInput
+
+  """Filter options for quarter_year"""
+  quarter_year: StringFilterInput
+
+  """Filter options for month_number"""
+  month_number: IntFilterInput
+
+  """Filter options for month_name"""
+  month_name: StringFilterInput
+
+  """Filter options for month_key"""
+  month_key: StringFilterInput
+
+  """Filter options for week_of_year"""
+  week_of_year: IntFilterInput
+
+  """Filter options for weekday"""
+  weekday: StringFilterInput
+
+  """Filter options for day_of_week"""
+  day_of_week: IntFilterInput
+
+  """Filter options for day_of_month"""
+  day_of_month: IntFilterInput
+
+  """Filter options for day_of_year"""
+  day_of_year: IntFilterInput
+
+  """Filter options for is_weekend"""
+  is_weekend: IntFilterInput
+
+  """Filter options for is_last_day_of_month"""
+  is_last_day_of_month: IntFilterInput
+
+  """Filter options for first_day_of_month"""
+  first_day_of_month: DateTimeFilterInput
+
+  """Filter options for last_day_of_month"""
+  last_day_of_month: DateTimeFilterInput
+
+  """Filter options for month_name_abbr"""
+  month_name_abbr: StringFilterInput
+
+  """Filter options for fiscal_year"""
+  fiscal_year: StringFilterInput
+
+  """Filter options for fiscal_month"""
+  fiscal_month: StringFilterInput
+
+  """Filter options for fiscal_quarter"""
+  fiscal_quarter: StringFilterInput
+
+  """Filter options for fiscal_period"""
+  fiscal_period: StringFilterInput
+
+  """Filter options for month_year"""
+  month_year: StringFilterInput
+
+  """Conditions to be treated as AND operations"""
+  and: [dim_dateFilterInput]
+
+  """Conditions to be treated as OR operations"""
+  or: [dim_dateFilterInput]
+}
+
+"""Scalar fields available in fact_inventory_current"""
+enum fact_inventory_currentScalarFields {
+  stock_number
+  dim_dealership_skey
+  dim_product_skey
+  first_seen_date
+  last_seen_date
+  days_on_lot
+  days_in_pending
+  price
+  median_price
+  overpriced_unit
+  current_stock
+  condition
+  amount_over_median
+  percent_over_median
+}
+
+"""Input type for adding Decimal filters"""
+input DecimalFilterInput {
+  """Equals"""
+  eq: Decimal
+
+  """Greater Than"""
+  gt: Decimal
+
+  """Greater Than or Equal To"""
+  gte: Decimal
+
+  """Less Than"""
+  lt: Decimal
+
+  """Less Than or Equal To"""
+  lte: Decimal
+
+  """Not Equals"""
+  neq: Decimal
+
+  """Not null test"""
+  isNull: Boolean
+
+  """In"""
+  in: [Decimal]
+}
+
+"""Order by input for fact_inventory_current GraphQL type"""
+input fact_inventory_currentOrderByInput {
+  """Order by options for stock_number"""
+  stock_number: OrderBy
+
+  """Order by options for dim_dealership_skey"""
+  dim_dealership_skey: OrderBy
+
+  """Order by options for dim_product_skey"""
+  dim_product_skey: OrderBy
+
+  """Order by options for first_seen_date"""
+  first_seen_date: OrderBy
+
+  """Order by options for last_seen_date"""
+  last_seen_date: OrderBy
+
+  """Order by options for days_on_lot"""
+  days_on_lot: OrderBy
+
+  """Order by options for days_in_pending"""
+  days_in_pending: OrderBy
+
+  """Order by options for price"""
+  price: OrderBy
+
+  """Order by options for median_price"""
+  median_price: OrderBy
+
+  """Order by options for overpriced_unit"""
+  overpriced_unit: OrderBy
+
+  """Order by options for current_stock"""
+  current_stock: OrderBy
+
+  """Order by options for condition"""
+  condition: OrderBy
+
+  """Order by options for amount_over_median"""
+  amount_over_median: OrderBy
+
+  """Order by options for percent_over_median"""
+  percent_over_median: OrderBy
+}
+
+"""
+The return object from a filter query that supports a pagination token for paging through results
+"""
+type dim_dealershipConnection {
+  """The list of items that matched the filter"""
+  items: [dim_dealership!]!
+
+  """A pagination token to provide to subsequent pages of a query"""
+  endCursor: String
+
+  """Indicates if there are more pages of items to return"""
+  hasNextPage: Boolean!
+
+  """Group results by specified fields"""
+  groupBy(
+    """Fields to group by"""
+    fields: [dim_dealershipScalarFields!]
+  ): [dim_dealershipGroupBy!]!
+}
+
+"""Aggregation type for fact_inventory_current"""
+type fact_inventory_currentAggregations {
+  """Maximum value for numeric fields"""
+  max(
+    """Field to aggregate on"""
+    field: fact_inventory_currentNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Minimum value for numeric fields"""
+  min(
+    """Field to aggregate on"""
+    field: fact_inventory_currentNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Average value"""
+  avg(
+    """Field to aggregate on"""
+    field: fact_inventory_currentNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Sum of values"""
+  sum(
+    """Field to aggregate on"""
+    field: fact_inventory_currentNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Count of numeric values"""
+  count(
+    """Field to aggregate on"""
+    field: fact_inventory_currentNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Int
+}
+
+"""
+The return object from a filter query that supports a pagination token for paging through results
+"""
+type fact_inventory_currentConnection {
+  """The list of items that matched the filter"""
+  items: [fact_inventory_current!]!
+
+  """A pagination token to provide to subsequent pages of a query"""
+  endCursor: String
+
+  """Indicates if there are more pages of items to return"""
+  hasNextPage: Boolean!
+
+  """Group results by specified fields"""
+  groupBy(
+    """Fields to group by"""
+    fields: [fact_inventory_currentScalarFields!]
+  ): [fact_inventory_currentGroupBy!]!
+}
+
+"""Order by input for dim_dealership GraphQL type"""
+input dim_dealershipOrderByInput {
+  """Order by options for dim_dealership_skey"""
+  dim_dealership_skey: OrderBy
+
+  """Order by options for dealership_id"""
+  dealership_id: OrderBy
+
+  """Order by options for created_or_updated_timestamp"""
+  created_or_updated_timestamp: OrderBy
+
+  """Order by options for dealer_group"""
+  dealer_group: OrderBy
+
+  """Order by options for dealership"""
+  dealership: OrderBy
+
+  """Order by options for address_line1"""
+  address_line1: OrderBy
+
+  """Order by options for city"""
+  city: OrderBy
+
+  """Order by options for state"""
+  state: OrderBy
+
+  """Order by options for postal_code"""
+  postal_code: OrderBy
+
+  """Order by options for county"""
+  county: OrderBy
+
+  """Order by options for bta"""
+  bta: OrderBy
+
+  """Order by options for region"""
+  region: OrderBy
+
+  """Order by options for dealer_group_logo_small"""
+  dealer_group_logo_small: OrderBy
+
+  """Order by options for country"""
+  country: OrderBy
+}
+
+"""GroupBy type for fact_inventory_snapshot"""
+type fact_inventory_snapshotGroupBy {
+  """Grouped fields from fact_inventory_snapshot"""
+  fields: fact_inventory_snapshot
+
+  """Aggregations for fact_inventory_snapshot"""
+  aggregations: fact_inventory_snapshotAggregations
+}
+
+"""Input type for adding DateTime filters"""
+input DateTimeFilterInput {
+  """Equals"""
+  eq: DateTime
+
+  """Greater Than"""
+  gt: DateTime
+
+  """Greater Than or Equal To"""
+  gte: DateTime
+
+  """Less Than"""
+  lt: DateTime
+
+  """Less Than or Equal To"""
+  lte: DateTime
+
+  """Not Equals"""
+  neq: DateTime
+
+  """Not null test"""
+  isNull: Boolean
+
+  """In"""
+  in: [DateTime]
+}
+
+"""Defines when a policy shall be executed."""
+enum ApplyPolicy {
+  """Before the resolver was executed."""
+  BEFORE_RESOLVER
+
+  """After the resolver was executed."""
+  AFTER_RESOLVER
+
+  """The policy is applied in the validation step before the execution."""
+  VALIDATION
+}
+
+"""GroupBy type for dim_date"""
+type dim_dateGroupBy {
+  """Grouped fields from dim_date"""
+  fields: dim_date
+
+  """Aggregations for dim_date"""
+  aggregations: dim_dateAggregations
+}
+
+"""GroupBy type for dim_product"""
+type dim_productGroupBy {
+  """Grouped fields from dim_product"""
+  fields: dim_product
+
+  """Aggregations for dim_product"""
+  aggregations: dim_productAggregations
+}
+
+"""Filter input for fact_statistical_survey_registration GraphQL type"""
+input fact_statistical_survey_registrationFilterInput {
+  """Filter options for unique_number"""
+  unique_number: LongFilterInput
+
+  """Filter options for registration_date_skey"""
+  registration_date_skey: IntFilterInput
+
+  """Filter options for rolling_3_months_registration_date"""
+  rolling_3_months_registration_date: DateTimeFilterInput
+
+  """Filter options for created_or_updated_timestamp"""
+  created_or_updated_timestamp: DateTimeFilterInput
+
+  """Filter options for new_used"""
+  new_used: StringFilterInput
+
+  """Filter options for lien"""
+  lien: StringFilterInput
+
+  """Filter options for is_rental"""
+  is_rental: StringFilterInput
+
+  """Filter options for is_thor"""
+  is_thor: IntFilterInput
+
+  """Filter options for motorized_towable"""
+  motorized_towable: StringFilterInput
+
+  """Filter options for thor_operating_company"""
+  thor_operating_company: StringFilterInput
+
+  """Filter options for model_year"""
+  model_year: StringFilterInput
+
+  """Filter options for rv_type"""
+  rv_type: StringFilterInput
+
+  """Filter options for rv_subtype"""
+  rv_subtype: StringFilterInput
+
+  """Filter options for manufacturer"""
+  manufacturer: StringFilterInput
+
+  """Filter options for division"""
+  division: StringFilterInput
+
+  """Filter options for rv_model"""
+  rv_model: StringFilterInput
+
+  """Filter options for drive_type"""
+  drive_type: StringFilterInput
+
+  """Filter options for number_of_axles"""
+  number_of_axles: StringFilterInput
+
+  """Filter options for chassis"""
+  chassis: StringFilterInput
+
+  """Filter options for chassis_model"""
+  chassis_model: StringFilterInput
+
+  """Filter options for engine"""
+  engine: StringFilterInput
+
+  """Filter options for fuel"""
+  fuel: StringFilterInput
+
+  """Filter options for length"""
+  length: StringFilterInput
+
+  """Filter options for gross_vehicle_weight"""
+  gross_vehicle_weight: StringFilterInput
+
+  """Filter options for dealer_group"""
+  dealer_group: StringFilterInput
+
+  """Filter options for dealership"""
+  dealership: StringFilterInput
+
+  """Filter options for dealership_bta"""
+  dealership_bta: StringFilterInput
+
+  """Filter options for dealership_city"""
+  dealership_city: StringFilterInput
+
+  """Filter options for dealership_county"""
+  dealership_county: StringFilterInput
+
+  """Filter options for dealership_state"""
+  dealership_state: StringFilterInput
+
+  """Filter options for placement_bta"""
+  placement_bta: StringFilterInput
+
+  """Filter options for placement_city"""
+  placement_city: StringFilterInput
+
+  """Filter options for placement_county"""
+  placement_county: StringFilterInput
+
+  """Filter options for placement_state"""
+  placement_state: StringFilterInput
+
+  """Filter options for placement_zip"""
+  placement_zip: StringFilterInput
+
+  """Filter options for price_group"""
+  price_group: StringFilterInput
+
+  """Filter options for price"""
+  price: FloatFilterInput
+
+  """Filter options for registration_count"""
+  registration_count: IntFilterInput
+
+  """Filter options for dealership_country"""
+  dealership_country: StringFilterInput
+
+  """Filter options for placement_country"""
+  placement_country: StringFilterInput
+
+  """Conditions to be treated as AND operations"""
+  and: [fact_statistical_survey_registrationFilterInput]
+
+  """Conditions to be treated as OR operations"""
+  or: [fact_statistical_survey_registrationFilterInput]
+}
+
+"""
+The return object from a filter query that supports a pagination token for paging through results
+"""
+type dim_date_periodConnection {
+  """The list of items that matched the filter"""
+  items: [dim_date_period!]!
+
+  """A pagination token to provide to subsequent pages of a query"""
+  endCursor: String
+
+  """Indicates if there are more pages of items to return"""
+  hasNextPage: Boolean!
+
+  """Group results by specified fields"""
+  groupBy(
+    """Fields to group by"""
+    fields: [dim_date_periodScalarFields!]
+  ): [dim_date_periodGroupBy!]!
+}
+
+"""Fields available for aggregation in fact_inventory_sales"""
+enum fact_inventory_salesNumericAggregateFields {
+  sold_date_skey
+  dim_dealership_skey
+  dim_product_skey
+  days_to_sell
+  days_in_pending
+  sale_price
+  sold_unit
+}
+
+"""GroupBy type for fact_inventory"""
+type fact_inventoryGroupBy {
+  """Grouped fields from fact_inventory"""
+  fields: fact_inventory
+
+  """Aggregations for fact_inventory"""
+  aggregations: fact_inventoryAggregations
+}
+
+type DbOperationResult {
+  """Contains result for mutation execution"""
+  result: String
+}
+
+"""Aggregation type for dim_date"""
+type dim_dateAggregations {
+  """Maximum value for numeric fields"""
+  max(
+    """Field to aggregate on"""
+    field: dim_dateNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: IntFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Minimum value for numeric fields"""
+  min(
+    """Field to aggregate on"""
+    field: dim_dateNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: IntFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Average value"""
+  avg(
+    """Field to aggregate on"""
+    field: dim_dateNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: IntFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Sum of values"""
+  sum(
+    """Field to aggregate on"""
+    field: dim_dateNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: IntFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Count of numeric values"""
+  count(
+    """Field to aggregate on"""
+    field: dim_dateNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: IntFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Int
+}
+
+type dim_dealership {
+  dim_dealership_skey: Int
+  dealership_id: Int
+  created_or_updated_timestamp: DateTime
+  dealer_group: String
+  dealership: String
+  address_line1: String
+  city: String
+  state: String
+  postal_code: String
+  county: String
+  bta: String
+  region: String
+  dealer_group_logo_small: String
+  country: String
+}
+
+"""Order by input for fact_inventory_snapshot GraphQL type"""
+input fact_inventory_snapshotOrderByInput {
+  """Order by options for inventory_date_skey"""
+  inventory_date_skey: OrderBy
+
+  """Order by options for dim_dealership_skey"""
+  dim_dealership_skey: OrderBy
+
+  """Order by options for dim_product_skey"""
+  dim_product_skey: OrderBy
+
+  """Order by options for inventory_coming_soon"""
+  inventory_coming_soon: OrderBy
+
+  """Order by options for inventory_added"""
+  inventory_added: OrderBy
+
+  """Order by options for inventory_transferred_in"""
+  inventory_transferred_in: OrderBy
+
+  """Order by options for inventory_transferred_out"""
+  inventory_transferred_out: OrderBy
+
+  """Order by options for inventory_pending"""
+  inventory_pending: OrderBy
+
+  """Order by options for inventory_sold"""
+  inventory_sold: OrderBy
+
+  """Order by options for inventory_on_lot"""
+  inventory_on_lot: OrderBy
+
+  """Order by options for overpriced_units"""
+  overpriced_units: OrderBy
+
+  """Order by options for median_price"""
+  median_price: OrderBy
+
+  """Order by options for minimum_price"""
+  minimum_price: OrderBy
+
+  """Order by options for maximum_price"""
+  maximum_price: OrderBy
+
+  """Order by options for condition"""
+  condition: OrderBy
+}
+
+"""Filter input for fact_inventory_snapshot GraphQL type"""
+input fact_inventory_snapshotFilterInput {
+  """Filter options for inventory_date_skey"""
+  inventory_date_skey: IntFilterInput
+
+  """Filter options for dim_dealership_skey"""
+  dim_dealership_skey: IntFilterInput
+
+  """Filter options for dim_product_skey"""
+  dim_product_skey: IntFilterInput
+
+  """Filter options for inventory_coming_soon"""
+  inventory_coming_soon: LongFilterInput
+
+  """Filter options for inventory_added"""
+  inventory_added: LongFilterInput
+
+  """Filter options for inventory_transferred_in"""
+  inventory_transferred_in: LongFilterInput
+
+  """Filter options for inventory_transferred_out"""
+  inventory_transferred_out: LongFilterInput
+
+  """Filter options for inventory_pending"""
+  inventory_pending: LongFilterInput
+
+  """Filter options for inventory_sold"""
+  inventory_sold: LongFilterInput
+
+  """Filter options for inventory_on_lot"""
+  inventory_on_lot: LongFilterInput
+
+  """Filter options for overpriced_units"""
+  overpriced_units: LongFilterInput
+
+  """Filter options for median_price"""
+  median_price: DecimalFilterInput
+
+  """Filter options for minimum_price"""
+  minimum_price: DecimalFilterInput
+
+  """Filter options for maximum_price"""
+  maximum_price: DecimalFilterInput
+
+  """Filter options for condition"""
+  condition: StringFilterInput
+
+  """Conditions to be treated as AND operations"""
+  and: [fact_inventory_snapshotFilterInput]
+
+  """Conditions to be treated as OR operations"""
+  or: [fact_inventory_snapshotFilterInput]
+}
+
+type fact_statistical_survey_registration {
+  unique_number: Long
+  registration_date_skey: Int
+  rolling_3_months_registration_date: DateTime
+  created_or_updated_timestamp: DateTime
+  new_used: String
+  lien: String
+  is_rental: String
+  is_thor: Int
+  motorized_towable: String
+  thor_operating_company: String
+  model_year: String
+  rv_type: String
+  rv_subtype: String
+  manufacturer: String
+  division: String
+  rv_model: String
+  drive_type: String
+  number_of_axles: String
+  chassis: String
+  chassis_model: String
+  engine: String
+  fuel: String
+  length: String
+  gross_vehicle_weight: String
+  dealer_group: String
+  dealership: String
+  dealership_bta: String
+  dealership_city: String
+  dealership_county: String
+  dealership_state: String
+  placement_bta: String
+  placement_city: String
+  placement_county: String
+  placement_state: String
+  placement_zip: String
+  price_group: String
+  price: Float
+  registration_count: Int
+  dealership_country: String
+  placement_country: String
+}
+
+"""Order by input for dim_product GraphQL type"""
+input dim_productOrderByInput {
+  """Order by options for dim_product_skey"""
+  dim_product_skey: OrderBy
+
+  """Order by options for product_id"""
+  product_id: OrderBy
+
+  """Order by options for created_or_updated_timestamp"""
+  created_or_updated_timestamp: OrderBy
+
+  """Order by options for parent_company"""
+  parent_company: OrderBy
+
+  """Order by options for division"""
+  division: OrderBy
+
+  """Order by options for company"""
+  company: OrderBy
+
+  """Order by options for manufacturer"""
+  manufacturer: OrderBy
+
+  """Order by options for model_year"""
+  model_year: OrderBy
+
+  """Order by options for full_model"""
+  full_model: OrderBy
+
+  """Order by options for model"""
+  model: OrderBy
+
+  """Order by options for floorplan"""
+  floorplan: OrderBy
+
+  """Order by options for rv_type"""
+  rv_type: OrderBy
+
+  """Order by options for rv_subtype"""
+  rv_subtype: OrderBy
+
+  """Order by options for manufacturer_model"""
+  manufacturer_model: OrderBy
+
+  """Order by options for manufacturer_full_model"""
+  manufacturer_full_model: OrderBy
+
+  """Order by options for model_floorplan"""
+  model_floorplan: OrderBy
+
+  """Order by options for full_model_floorplan"""
+  full_model_floorplan: OrderBy
+
+  """Order by options for manufacturer_logo_small"""
+  manufacturer_logo_small: OrderBy
+
+  """Order by options for manufacturer_floorplan"""
+  manufacturer_floorplan: OrderBy
+
+  """Order by options for manufacturer_full_model_floorplan"""
+  manufacturer_full_model_floorplan: OrderBy
+}
+
+"""
+The return object from a filter query that supports a pagination token for paging through results
+"""
+type fact_inventory_snapshotConnection {
+  """The list of items that matched the filter"""
+  items: [fact_inventory_snapshot!]!
+
+  """A pagination token to provide to subsequent pages of a query"""
+  endCursor: String
+
+  """Indicates if there are more pages of items to return"""
+  hasNextPage: Boolean!
+
+  """Group results by specified fields"""
+  groupBy(
+    """Fields to group by"""
+    fields: [fact_inventory_snapshotScalarFields!]
+  ): [fact_inventory_snapshotGroupBy!]!
+}
+
+"""GroupBy type for dim_dealership"""
+type dim_dealershipGroupBy {
+  """Grouped fields from dim_dealership"""
+  fields: dim_dealership
+
+  """Aggregations for dim_dealership"""
+  aggregations: dim_dealershipAggregations
+}
+
+"""Aggregation type for fact_inventory_snapshot"""
+type fact_inventory_snapshotAggregations {
+  """Maximum value for numeric fields"""
+  max(
+    """Field to aggregate on"""
+    field: fact_inventory_snapshotNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Minimum value for numeric fields"""
+  min(
+    """Field to aggregate on"""
+    field: fact_inventory_snapshotNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Average value"""
+  avg(
+    """Field to aggregate on"""
+    field: fact_inventory_snapshotNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Sum of values"""
+  sum(
+    """Field to aggregate on"""
+    field: fact_inventory_snapshotNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Count of numeric values"""
+  count(
+    """Field to aggregate on"""
+    field: fact_inventory_snapshotNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Int
+}
+
+"""
+The return object from a filter query that supports a pagination token for paging through results
+"""
+type dim_productConnection {
+  """The list of items that matched the filter"""
+  items: [dim_product!]!
+
+  """A pagination token to provide to subsequent pages of a query"""
+  endCursor: String
+
+  """Indicates if there are more pages of items to return"""
+  hasNextPage: Boolean!
+
+  """Group results by specified fields"""
+  groupBy(
+    """Fields to group by"""
+    fields: [dim_productScalarFields!]
+  ): [dim_productGroupBy!]!
+}
+
+"""Aggregation type for dim_product"""
+type dim_productAggregations {
+  """Maximum value for numeric fields"""
+  max(
+    """Field to aggregate on"""
+    field: dim_productNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: IntFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Minimum value for numeric fields"""
+  min(
+    """Field to aggregate on"""
+    field: dim_productNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: IntFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Average value"""
+  avg(
+    """Field to aggregate on"""
+    field: dim_productNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: IntFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Sum of values"""
+  sum(
+    """Field to aggregate on"""
+    field: dim_productNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: IntFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Count of numeric values"""
+  count(
+    """Field to aggregate on"""
+    field: dim_productNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: IntFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Int
+}
+
+"""Input type for adding Float filters"""
+input FloatFilterInput {
+  """Equals"""
+  eq: Float
+
+  """Greater Than"""
+  gt: Float
+
+  """Greater Than or Equal To"""
+  gte: Float
+
+  """Less Than"""
+  lt: Float
+
+  """Less Than or Equal To"""
+  lte: Float
+
+  """Not Equals"""
+  neq: Float
+
+  """Not null test"""
+  isNull: Boolean
+
+  """In"""
+  in: [Float]
+}
+
+"""
+The return object from a filter query that supports a pagination token for paging through results
+"""
+type fact_inventoryConnection {
+  """The list of items that matched the filter"""
+  items: [fact_inventory!]!
+
+  """A pagination token to provide to subsequent pages of a query"""
+  endCursor: String
+
+  """Indicates if there are more pages of items to return"""
+  hasNextPage: Boolean!
+
+  """Group results by specified fields"""
+  groupBy(
+    """Fields to group by"""
+    fields: [fact_inventoryScalarFields!]
+  ): [fact_inventoryGroupBy!]!
+}
+
+"""Filter input for dim_product GraphQL type"""
+input dim_productFilterInput {
+  """Filter options for dim_product_skey"""
+  dim_product_skey: IntFilterInput
+
+  """Filter options for product_id"""
+  product_id: IntFilterInput
+
+  """Filter options for created_or_updated_timestamp"""
+  created_or_updated_timestamp: DateTimeFilterInput
+
+  """Filter options for parent_company"""
+  parent_company: StringFilterInput
+
+  """Filter options for division"""
+  division: StringFilterInput
+
+  """Filter options for company"""
+  company: StringFilterInput
+
+  """Filter options for manufacturer"""
+  manufacturer: StringFilterInput
+
+  """Filter options for model_year"""
+  model_year: StringFilterInput
+
+  """Filter options for full_model"""
+  full_model: StringFilterInput
+
+  """Filter options for model"""
+  model: StringFilterInput
+
+  """Filter options for floorplan"""
+  floorplan: StringFilterInput
+
+  """Filter options for rv_type"""
+  rv_type: StringFilterInput
+
+  """Filter options for rv_subtype"""
+  rv_subtype: StringFilterInput
+
+  """Filter options for manufacturer_model"""
+  manufacturer_model: StringFilterInput
+
+  """Filter options for manufacturer_full_model"""
+  manufacturer_full_model: StringFilterInput
+
+  """Filter options for model_floorplan"""
+  model_floorplan: StringFilterInput
+
+  """Filter options for full_model_floorplan"""
+  full_model_floorplan: StringFilterInput
+
+  """Filter options for manufacturer_logo_small"""
+  manufacturer_logo_small: StringFilterInput
+
+  """Filter options for manufacturer_floorplan"""
+  manufacturer_floorplan: StringFilterInput
+
+  """Filter options for manufacturer_full_model_floorplan"""
+  manufacturer_full_model_floorplan: StringFilterInput
+
+  """Conditions to be treated as AND operations"""
+  and: [dim_productFilterInput]
+
+  """Conditions to be treated as OR operations"""
+  or: [dim_productFilterInput]
+}
+
+"""The `Decimal` scalar type represents a decimal floating-point number."""
+scalar Decimal
+
+type fact_inventory {
+  stock_number: String
+  inventory_date_skey: Int
+  created_or_updated_timestamp: DateTime
+  dim_dealership_skey: Int
+  dim_product_skey: Int
+  vin: String
+  web_title: String
+  listing_url: String
+  image_url: String
+  tags: String
+  condition: String
+  inventory_status: String
+  inventory_on_lot: Int
+  age: Int
+  cost: Decimal
+  discount: Decimal
+  msrp: Decimal
+  sale_or_regular_price: Decimal
+  sale_price: Decimal
+  price: Decimal
+  inventory_added: Int
+  inventory_transferred_in: Int
+  transfer_from_dealership: String
+  inventory_transferred_out: Int
+  transfer_to_dealership: String
+  inventory_pending: Int
+  days_in_pending: Int
+  inventory_sold: Int
+  current_stock: Int
+  stock_count: Int
+  median_price: Decimal
+  minimum_price: Decimal
+  maximum_price: Decimal
+  overpriced_unit: Int
+  amount_over_median: Decimal
+  percent_over_median: Decimal
+}
+
+"""Input type for adding Long filters"""
+input LongFilterInput {
+  """Equals"""
+  eq: Long
+
+  """Greater Than"""
+  gt: Long
+
+  """Greater Than or Equal To"""
+  gte: Long
+
+  """Less Than"""
+  lt: Long
+
+  """Less Than or Equal To"""
+  lte: Long
+
+  """Not Equals"""
+  neq: Long
+
+  """Not null test"""
+  isNull: Boolean
+
+  """In"""
+  in: [Long]
+}
+
+type dim_date {
+  dim_date_skey: Int
+  calendar_date: DateTime
+  year: Int
+  quarter: String
+  quarter_year: String
+  month_number: Int
+  month_name: String
+  month_key: String
+  week_of_year: Int
+  weekday: String
+  day_of_week: Int
+  day_of_month: Int
+  day_of_year: Int
+  is_weekend: Int
+  is_last_day_of_month: Int
+  first_day_of_month: DateTime
+  last_day_of_month: DateTime
+  month_name_abbr: String
+  fiscal_year: String
+  fiscal_month: String
+  fiscal_quarter: String
+  fiscal_period: String
+  month_year: String
+}
+
+enum OrderBy {
+  ASC
+  DESC
+}
+
+"""Aggregation type for fact_inventory"""
+type fact_inventoryAggregations {
+  """Maximum value for numeric fields"""
+  max(
+    """Field to aggregate on"""
+    field: fact_inventoryNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Minimum value for numeric fields"""
+  min(
+    """Field to aggregate on"""
+    field: fact_inventoryNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Average value"""
+  avg(
+    """Field to aggregate on"""
+    field: fact_inventoryNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Sum of values"""
+  sum(
+    """Field to aggregate on"""
+    field: fact_inventoryNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Count of numeric values"""
+  count(
+    """Field to aggregate on"""
+    field: fact_inventoryNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Int
+}
+
+scalar ByteArray
+
+"""Scalar fields available in fact_inventory_sales"""
+enum fact_inventory_salesScalarFields {
+  stock_number
+  sold_date_skey
+  dim_dealership_skey
+  dim_product_skey
+  first_seen_date
+  last_seen_date
+  days_to_sell
+  days_in_pending
+  sale_price
+  sold_unit
+  condition
+}
+
+"""Order by input for fact_inventory_sales GraphQL type"""
+input fact_inventory_salesOrderByInput {
+  """Order by options for stock_number"""
+  stock_number: OrderBy
+
+  """Order by options for sold_date_skey"""
+  sold_date_skey: OrderBy
+
+  """Order by options for dim_dealership_skey"""
+  dim_dealership_skey: OrderBy
+
+  """Order by options for dim_product_skey"""
+  dim_product_skey: OrderBy
+
+  """Order by options for first_seen_date"""
+  first_seen_date: OrderBy
+
+  """Order by options for last_seen_date"""
+  last_seen_date: OrderBy
+
+  """Order by options for days_to_sell"""
+  days_to_sell: OrderBy
+
+  """Order by options for days_in_pending"""
+  days_in_pending: OrderBy
+
+  """Order by options for sale_price"""
+  sale_price: OrderBy
+
+  """Order by options for sold_unit"""
+  sold_unit: OrderBy
+
+  """Order by options for condition"""
+  condition: OrderBy
+}
+
+"""Aggregation type for dim_dealership"""
+type dim_dealershipAggregations {
+  """Maximum value for numeric fields"""
+  max(
+    """Field to aggregate on"""
+    field: dim_dealershipNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: IntFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Minimum value for numeric fields"""
+  min(
+    """Field to aggregate on"""
+    field: dim_dealershipNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: IntFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Average value"""
+  avg(
+    """Field to aggregate on"""
+    field: dim_dealershipNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: IntFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Sum of values"""
+  sum(
+    """Field to aggregate on"""
+    field: dim_dealershipNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: IntFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Count of numeric values"""
+  count(
+    """Field to aggregate on"""
+    field: dim_dealershipNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: IntFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Int
+}
+
+"""Fields available for aggregation in fact_inventory_current"""
+enum fact_inventory_currentNumericAggregateFields {
+  dim_dealership_skey
+  dim_product_skey
+  days_on_lot
+  days_in_pending
+  price
+  median_price
+  overpriced_unit
+  current_stock
+  amount_over_median
+  percent_over_median
+}
+
+type dim_product {
+  dim_product_skey: Int
+  product_id: Int
+  created_or_updated_timestamp: DateTime
+  parent_company: String
+  division: String
+  company: String
+  manufacturer: String
+  model_year: String
+  full_model: String
+  model: String
+  floorplan: String
+  rv_type: String
+  rv_subtype: String
+  manufacturer_model: String
+  manufacturer_full_model: String
+  model_floorplan: String
+  full_model_floorplan: String
+  manufacturer_logo_small: String
+  manufacturer_floorplan: String
+  manufacturer_full_model_floorplan: String
+}
+
+"""Fields available for aggregation in dim_date"""
+enum dim_dateNumericAggregateFields {
+  dim_date_skey
+  year
+  month_number
+  week_of_year
+  day_of_week
+  day_of_month
+  day_of_year
+  is_weekend
+  is_last_day_of_month
+}
+
+"""Scalar fields available in dim_date_period"""
+enum dim_date_periodScalarFields {
+  date_period
+  sort_order
+  dim_current_date_skey
+  dim_previous_date_skey
+}
+
+"""IEEE 754 32 bit float"""
+scalar Single
+
+"""
+The `Byte` scalar type represents non-fractional whole numeric values. Byte can represent values between 0 and 255.
+"""
+scalar Byte
+
+"""
+The return object from a filter query that supports a pagination token for paging through results
+"""
+type fact_statistical_survey_registrationConnection {
+  """The list of items that matched the filter"""
+  items: [fact_statistical_survey_registration!]!
+
+  """A pagination token to provide to subsequent pages of a query"""
+  endCursor: String
+
+  """Indicates if there are more pages of items to return"""
+  hasNextPage: Boolean!
+
+  """Group results by specified fields"""
+  groupBy(
+    """Fields to group by"""
+    fields: [fact_statistical_survey_registrationScalarFields!]
+  ): [fact_statistical_survey_registrationGroupBy!]!
+}
+
+"""Filter input for fact_inventory_current GraphQL type"""
+input fact_inventory_currentFilterInput {
+  """Filter options for stock_number"""
+  stock_number: StringFilterInput
+
+  """Filter options for dim_dealership_skey"""
+  dim_dealership_skey: IntFilterInput
+
+  """Filter options for dim_product_skey"""
+  dim_product_skey: IntFilterInput
+
+  """Filter options for first_seen_date"""
+  first_seen_date: DateTimeFilterInput
+
+  """Filter options for last_seen_date"""
+  last_seen_date: DateTimeFilterInput
+
+  """Filter options for days_on_lot"""
+  days_on_lot: IntFilterInput
+
+  """Filter options for days_in_pending"""
+  days_in_pending: LongFilterInput
+
+  """Filter options for price"""
+  price: DecimalFilterInput
+
+  """Filter options for median_price"""
+  median_price: DecimalFilterInput
+
+  """Filter options for overpriced_unit"""
+  overpriced_unit: IntFilterInput
+
+  """Filter options for current_stock"""
+  current_stock: IntFilterInput
+
+  """Filter options for condition"""
+  condition: StringFilterInput
+
+  """Filter options for amount_over_median"""
+  amount_over_median: DecimalFilterInput
+
+  """Filter options for percent_over_median"""
+  percent_over_median: DecimalFilterInput
+
+  """Conditions to be treated as AND operations"""
+  and: [fact_inventory_currentFilterInput]
+
+  """Conditions to be treated as OR operations"""
+  or: [fact_inventory_currentFilterInput]
+}
+
+"""Fields available for aggregation in dim_date_period"""
+enum dim_date_periodNumericAggregateFields {
+  sort_order
+  dim_current_date_skey
+  dim_previous_date_skey
+}
+
+"""Filter input for fact_inventory_sales GraphQL type"""
+input fact_inventory_salesFilterInput {
+  """Filter options for stock_number"""
+  stock_number: StringFilterInput
+
+  """Filter options for sold_date_skey"""
+  sold_date_skey: IntFilterInput
+
+  """Filter options for dim_dealership_skey"""
+  dim_dealership_skey: IntFilterInput
+
+  """Filter options for dim_product_skey"""
+  dim_product_skey: IntFilterInput
+
+  """Filter options for first_seen_date"""
+  first_seen_date: DateTimeFilterInput
+
+  """Filter options for last_seen_date"""
+  last_seen_date: DateTimeFilterInput
+
+  """Filter options for days_to_sell"""
+  days_to_sell: IntFilterInput
+
+  """Filter options for days_in_pending"""
+  days_in_pending: LongFilterInput
+
+  """Filter options for sale_price"""
+  sale_price: DecimalFilterInput
+
+  """Filter options for sold_unit"""
+  sold_unit: IntFilterInput
+
+  """Filter options for condition"""
+  condition: StringFilterInput
+
+  """Conditions to be treated as AND operations"""
+  and: [fact_inventory_salesFilterInput]
+
+  """Conditions to be treated as OR operations"""
+  or: [fact_inventory_salesFilterInput]
+}
+
+"""Scalar fields available in dim_product"""
+enum dim_productScalarFields {
+  dim_product_skey
+  product_id
+  created_or_updated_timestamp
+  parent_company
+  division
+  company
+  manufacturer
+  model_year
+  full_model
+  model
+  floorplan
+  rv_type
+  rv_subtype
+  manufacturer_model
+  manufacturer_full_model
+  model_floorplan
+  full_model_floorplan
+  manufacturer_logo_small
+  manufacturer_floorplan
+  manufacturer_full_model_floorplan
+}
+
+input DefaultValue {
+  Byte: Byte
+  Short: Short
+  Int: Int
+  Long: Long
+  String: String
+  Boolean: Boolean
+  Single: Single
+  Float: Float
+  Decimal: Decimal
+  DateTime: DateTime
+  ByteArray: ByteArray
+  LocalTime: LocalTime
+}
+
+"""Scalar fields available in fact_statistical_survey_registration"""
+enum fact_statistical_survey_registrationScalarFields {
+  unique_number
+  registration_date_skey
+  rolling_3_months_registration_date
+  created_or_updated_timestamp
+  new_used
+  lien
+  is_rental
+  is_thor
+  motorized_towable
+  thor_operating_company
+  model_year
+  rv_type
+  rv_subtype
+  manufacturer
+  division
+  rv_model
+  drive_type
+  number_of_axles
+  chassis
+  chassis_model
+  engine
+  fuel
+  length
+  gross_vehicle_weight
+  dealer_group
+  dealership
+  dealership_bta
+  dealership_city
+  dealership_county
+  dealership_state
+  placement_bta
+  placement_city
+  placement_county
+  placement_state
+  placement_zip
+  price_group
+  price
+  registration_count
+  dealership_country
+  placement_country
+}
+
+"""
+Fields available for aggregation in fact_statistical_survey_registration
+"""
+enum fact_statistical_survey_registrationNumericAggregateFields {
+  unique_number
+  registration_date_skey
+  is_thor
+  price
+  registration_count
+}
+
+"""Fields available for aggregation in dim_product"""
+enum dim_productNumericAggregateFields {
+  dim_product_skey
+  product_id
+}
+
+"""Aggregation type for fact_inventory_sales"""
+type fact_inventory_salesAggregations {
+  """Maximum value for numeric fields"""
+  max(
+    """Field to aggregate on"""
+    field: fact_inventory_salesNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Minimum value for numeric fields"""
+  min(
+    """Field to aggregate on"""
+    field: fact_inventory_salesNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Average value"""
+  avg(
+    """Field to aggregate on"""
+    field: fact_inventory_salesNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Sum of values"""
+  sum(
+    """Field to aggregate on"""
+    field: fact_inventory_salesNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Count of numeric values"""
+  count(
+    """Field to aggregate on"""
+    field: fact_inventory_salesNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: DecimalFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Int
+}
+
+"""
+The `Long` scalar type represents non-fractional signed whole 64-bit numeric values. Long can represent values between -(2^63) and 2^63 - 1.
+"""
+scalar Long
+
+type fact_inventory_sales {
+  stock_number: String
+  sold_date_skey: Int
+  dim_dealership_skey: Int
+  dim_product_skey: Int
+  first_seen_date: DateTime
+  last_seen_date: DateTime
+  days_to_sell: Int
+  days_in_pending: Long
+  sale_price: Decimal
+  sold_unit: Int
+  condition: String
+}
+
+"""Aggregation type for fact_statistical_survey_registration"""
+type fact_statistical_survey_registrationAggregations {
+  """Maximum value for numeric fields"""
+  max(
+    """Field to aggregate on"""
+    field: fact_statistical_survey_registrationNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: FloatFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Minimum value for numeric fields"""
+  min(
+    """Field to aggregate on"""
+    field: fact_statistical_survey_registrationNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: FloatFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Average value"""
+  avg(
+    """Field to aggregate on"""
+    field: fact_statistical_survey_registrationNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: FloatFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Sum of values"""
+  sum(
+    """Field to aggregate on"""
+    field: fact_statistical_survey_registrationNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: FloatFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Float
+
+  """Count of numeric values"""
+  count(
+    """Field to aggregate on"""
+    field: fact_statistical_survey_registrationNumericAggregateFields!
+
+    """Filter criteria for aggregation"""
+    having: FloatFilterInput
+
+    """Whether to aggregate on distinct values"""
+    distinct: Boolean = false
+  ): Int
+}
+
+"""Fields available for aggregation in fact_inventory"""
+enum fact_inventoryNumericAggregateFields {
+  inventory_date_skey
+  dim_dealership_skey
+  dim_product_skey
+  inventory_on_lot
+  age
+  cost
+  discount
+  msrp
+  sale_or_regular_price
+  sale_price
+  price
+  inventory_added
+  inventory_transferred_in
+  inventory_transferred_out
+  inventory_pending
+  days_in_pending
+  inventory_sold
+  current_stock
+  stock_count
+  median_price
+  minimum_price
+  maximum_price
+  overpriced_unit
+  amount_over_median
+  percent_over_median
+}
+
+"""GroupBy type for fact_statistical_survey_registration"""
+type fact_statistical_survey_registrationGroupBy {
+  """Grouped fields from fact_statistical_survey_registration"""
+  fields: fact_statistical_survey_registration
+
+  """Aggregations for fact_statistical_survey_registration"""
+  aggregations: fact_statistical_survey_registrationAggregations
+}
+
+"""Scalar fields available in dim_dealership"""
+enum dim_dealershipScalarFields {
+  dim_dealership_skey
+  dealership_id
+  created_or_updated_timestamp
+  dealer_group
+  dealership
+  address_line1
+  city
+  state
+  postal_code
+  county
+  bta
+  region
+  dealer_group_logo_small
+  country
+}
+
+"""
+The return object from a filter query that supports a pagination token for paging through results
+"""
+type fact_inventory_salesConnection {
+  """The list of items that matched the filter"""
+  items: [fact_inventory_sales!]!
+
+  """A pagination token to provide to subsequent pages of a query"""
+  endCursor: String
+
+  """Indicates if there are more pages of items to return"""
+  hasNextPage: Boolean!
+
+  """Group results by specified fields"""
+  groupBy(
+    """Fields to group by"""
+    fields: [fact_inventory_salesScalarFields!]
+  ): [fact_inventory_salesGroupBy!]!
+}
+
+type Query {
+  """Get a list of all the dim_product items from the database"""
+  dim_products(
+    """The number of items to return from the page start point"""
+    first: Int
+
+    """
+    A pagination token from a previous query to continue through a paginated list
+    """
+    after: String
+
+    """Filter options for query"""
+    filter: dim_productFilterInput
+
+    """Ordering options for query"""
+    orderBy: dim_productOrderByInput
+  ): dim_productConnection!
+
+  """Get a list of all the fact_inventory_snapshot items from the database"""
+  fact_inventory_snapshots(
+    """The number of items to return from the page start point"""
+    first: Int
+
+    """
+    A pagination token from a previous query to continue through a paginated list
+    """
+    after: String
+
+    """Filter options for query"""
+    filter: fact_inventory_snapshotFilterInput
+
+    """Ordering options for query"""
+    orderBy: fact_inventory_snapshotOrderByInput
+  ): fact_inventory_snapshotConnection!
+
+  """
+  Get a list of all the fact_statistical_survey_registration items from the database
+  """
+  fact_statistical_survey_registrations(
+    """The number of items to return from the page start point"""
+    first: Int
+
+    """
+    A pagination token from a previous query to continue through a paginated list
+    """
+    after: String
+
+    """Filter options for query"""
+    filter: fact_statistical_survey_registrationFilterInput
+
+    """Ordering options for query"""
+    orderBy: fact_statistical_survey_registrationOrderByInput
+  ): fact_statistical_survey_registrationConnection!
+
+  """Get a list of all the fact_inventory_sales items from the database"""
+  fact_inventory_sales(
+    """The number of items to return from the page start point"""
+    first: Int
+
+    """
+    A pagination token from a previous query to continue through a paginated list
+    """
+    after: String
+
+    """Filter options for query"""
+    filter: fact_inventory_salesFilterInput
+
+    """Ordering options for query"""
+    orderBy: fact_inventory_salesOrderByInput
+  ): fact_inventory_salesConnection!
+
+  """Get a list of all the dim_dealership items from the database"""
+  dim_dealerships(
+    """The number of items to return from the page start point"""
+    first: Int
+
+    """
+    A pagination token from a previous query to continue through a paginated list
+    """
+    after: String
+
+    """Filter options for query"""
+    filter: dim_dealershipFilterInput
+
+    """Ordering options for query"""
+    orderBy: dim_dealershipOrderByInput
+  ): dim_dealershipConnection!
+
+  """Get a list of all the fact_inventory items from the database"""
+  fact_inventories(
+    """The number of items to return from the page start point"""
+    first: Int
+
+    """
+    A pagination token from a previous query to continue through a paginated list
+    """
+    after: String
+
+    """Filter options for query"""
+    filter: fact_inventoryFilterInput
+
+    """Ordering options for query"""
+    orderBy: fact_inventoryOrderByInput
+  ): fact_inventoryConnection!
+
+  """Get a list of all the fact_inventory_current items from the database"""
+  fact_inventory_currents(
+    """The number of items to return from the page start point"""
+    first: Int
+
+    """
+    A pagination token from a previous query to continue through a paginated list
+    """
+    after: String
+
+    """Filter options for query"""
+    filter: fact_inventory_currentFilterInput
+
+    """Ordering options for query"""
+    orderBy: fact_inventory_currentOrderByInput
+  ): fact_inventory_currentConnection!
+
+  """Get a list of all the dim_date_period items from the database"""
+  dim_date_periods(
+    """The number of items to return from the page start point"""
+    first: Int
+
+    """
+    A pagination token from a previous query to continue through a paginated list
+    """
+    after: String
+
+    """Filter options for query"""
+    filter: dim_date_periodFilterInput
+
+    """Ordering options for query"""
+    orderBy: dim_date_periodOrderByInput
+  ): dim_date_periodConnection!
+
+  """Get a list of all the dim_date items from the database"""
+  dim_dates(
+    """The number of items to return from the page start point"""
+    first: Int
+
+    """
+    A pagination token from a previous query to continue through a paginated list
+    """
+    after: String
+
+    """Filter options for query"""
+    filter: dim_dateFilterInput
+
+    """Ordering options for query"""
+    orderBy: dim_dateOrderByInput
+  ): dim_dateConnection!
+}
+
+"""Fields available for aggregation in fact_inventory_snapshot"""
+enum fact_inventory_snapshotNumericAggregateFields {
+  inventory_date_skey
+  dim_dealership_skey
+  dim_product_skey
+  inventory_coming_soon
+  inventory_added
+  inventory_transferred_in
+  inventory_transferred_out
+  inventory_pending
+  inventory_sold
+  inventory_on_lot
+  overpriced_units
+  median_price
+  minimum_price
+  maximum_price
+}
+
+type dim_date_period {
+  date_period: String
+  sort_order: Long
+  dim_current_date_skey: Int
+  dim_previous_date_skey: Int
+}
+
+"""GroupBy type for fact_inventory_sales"""
+type fact_inventory_salesGroupBy {
+  """Grouped fields from fact_inventory_sales"""
+  fields: fact_inventory_sales
+
+  """Aggregations for fact_inventory_sales"""
+  aggregations: fact_inventory_salesAggregations
+}
+
+"""Scalar fields available in fact_inventory_snapshot"""
+enum fact_inventory_snapshotScalarFields {
+  inventory_date_skey
+  dim_dealership_skey
+  dim_product_skey
+  inventory_coming_soon
+  inventory_added
+  inventory_transferred_in
+  inventory_transferred_out
+  inventory_pending
+  inventory_sold
+  inventory_on_lot
+  overpriced_units
+  median_price
+  minimum_price
+  maximum_price
+  condition
+}
+
+"""
+The return object from a filter query that supports a pagination token for paging through results
+"""
+type dim_dateConnection {
+  """The list of items that matched the filter"""
+  items: [dim_date!]!
+
+  """A pagination token to provide to subsequent pages of a query"""
+  endCursor: String
+
+  """Indicates if there are more pages of items to return"""
+  hasNextPage: Boolean!
+
+  """Group results by specified fields"""
+  groupBy(
+    """Fields to group by"""
+    fields: [dim_dateScalarFields!]
+  ): [dim_dateGroupBy!]!
+}
+
+"""Filter input for fact_inventory GraphQL type"""
+input fact_inventoryFilterInput {
+  """Filter options for stock_number"""
+  stock_number: StringFilterInput
+
+  """Filter options for inventory_date_skey"""
+  inventory_date_skey: IntFilterInput
+
+  """Filter options for created_or_updated_timestamp"""
+  created_or_updated_timestamp: DateTimeFilterInput
+
+  """Filter options for dim_dealership_skey"""
+  dim_dealership_skey: IntFilterInput
+
+  """Filter options for dim_product_skey"""
+  dim_product_skey: IntFilterInput
+
+  """Filter options for vin"""
+  vin: StringFilterInput
+
+  """Filter options for web_title"""
+  web_title: StringFilterInput
+
+  """Filter options for listing_url"""
+  listing_url: StringFilterInput
+
+  """Filter options for image_url"""
+  image_url: StringFilterInput
+
+  """Filter options for tags"""
+  tags: StringFilterInput
+
+  """Filter options for condition"""
+  condition: StringFilterInput
+
+  """Filter options for inventory_status"""
+  inventory_status: StringFilterInput
+
+  """Filter options for inventory_on_lot"""
+  inventory_on_lot: IntFilterInput
+
+  """Filter options for age"""
+  age: IntFilterInput
+
+  """Filter options for cost"""
+  cost: DecimalFilterInput
+
+  """Filter options for discount"""
+  discount: DecimalFilterInput
+
+  """Filter options for msrp"""
+  msrp: DecimalFilterInput
+
+  """Filter options for sale_or_regular_price"""
+  sale_or_regular_price: DecimalFilterInput
+
+  """Filter options for sale_price"""
+  sale_price: DecimalFilterInput
+
+  """Filter options for price"""
+  price: DecimalFilterInput
+
+  """Filter options for inventory_added"""
+  inventory_added: IntFilterInput
+
+  """Filter options for inventory_transferred_in"""
+  inventory_transferred_in: IntFilterInput
+
+  """Filter options for transfer_from_dealership"""
+  transfer_from_dealership: StringFilterInput
+
+  """Filter options for inventory_transferred_out"""
+  inventory_transferred_out: IntFilterInput
+
+  """Filter options for transfer_to_dealership"""
+  transfer_to_dealership: StringFilterInput
+
+  """Filter options for inventory_pending"""
+  inventory_pending: IntFilterInput
+
+  """Filter options for days_in_pending"""
+  days_in_pending: IntFilterInput
+
+  """Filter options for inventory_sold"""
+  inventory_sold: IntFilterInput
+
+  """Filter options for current_stock"""
+  current_stock: IntFilterInput
+
+  """Filter options for stock_count"""
+  stock_count: IntFilterInput
+
+  """Filter options for median_price"""
+  median_price: DecimalFilterInput
+
+  """Filter options for minimum_price"""
+  minimum_price: DecimalFilterInput
+
+  """Filter options for maximum_price"""
+  maximum_price: DecimalFilterInput
+
+  """Filter options for overpriced_unit"""
+  overpriced_unit: IntFilterInput
+
+  """Filter options for amount_over_median"""
+  amount_over_median: DecimalFilterInput
+
+  """Filter options for percent_over_median"""
+  percent_over_median: DecimalFilterInput
+
+  """Conditions to be treated as AND operations"""
+  and: [fact_inventoryFilterInput]
+
+  """Conditions to be treated as OR operations"""
+  or: [fact_inventoryFilterInput]
+}
+
+"""Order by input for fact_inventory GraphQL type"""
+input fact_inventoryOrderByInput {
+  """Order by options for stock_number"""
+  stock_number: OrderBy
+
+  """Order by options for inventory_date_skey"""
+  inventory_date_skey: OrderBy
+
+  """Order by options for created_or_updated_timestamp"""
+  created_or_updated_timestamp: OrderBy
+
+  """Order by options for dim_dealership_skey"""
+  dim_dealership_skey: OrderBy
+
+  """Order by options for dim_product_skey"""
+  dim_product_skey: OrderBy
+
+  """Order by options for vin"""
+  vin: OrderBy
+
+  """Order by options for web_title"""
+  web_title: OrderBy
+
+  """Order by options for listing_url"""
+  listing_url: OrderBy
+
+  """Order by options for image_url"""
+  image_url: OrderBy
+
+  """Order by options for tags"""
+  tags: OrderBy
+
+  """Order by options for condition"""
+  condition: OrderBy
+
+  """Order by options for inventory_status"""
+  inventory_status: OrderBy
+
+  """Order by options for inventory_on_lot"""
+  inventory_on_lot: OrderBy
+
+  """Order by options for age"""
+  age: OrderBy
+
+  """Order by options for cost"""
+  cost: OrderBy
+
+  """Order by options for discount"""
+  discount: OrderBy
+
+  """Order by options for msrp"""
+  msrp: OrderBy
+
+  """Order by options for sale_or_regular_price"""
+  sale_or_regular_price: OrderBy
+
+  """Order by options for sale_price"""
+  sale_price: OrderBy
+
+  """Order by options for price"""
+  price: OrderBy
+
+  """Order by options for inventory_added"""
+  inventory_added: OrderBy
+
+  """Order by options for inventory_transferred_in"""
+  inventory_transferred_in: OrderBy
+
+  """Order by options for transfer_from_dealership"""
+  transfer_from_dealership: OrderBy
+
+  """Order by options for inventory_transferred_out"""
+  inventory_transferred_out: OrderBy
+
+  """Order by options for transfer_to_dealership"""
+  transfer_to_dealership: OrderBy
+
+  """Order by options for inventory_pending"""
+  inventory_pending: OrderBy
+
+  """Order by options for days_in_pending"""
+  days_in_pending: OrderBy
+
+  """Order by options for inventory_sold"""
+  inventory_sold: OrderBy
+
+  """Order by options for current_stock"""
+  current_stock: OrderBy
+
+  """Order by options for stock_count"""
+  stock_count: OrderBy
+
+  """Order by options for median_price"""
+  median_price: OrderBy
+
+  """Order by options for minimum_price"""
+  minimum_price: OrderBy
+
+  """Order by options for maximum_price"""
+  maximum_price: OrderBy
+
+  """Order by options for overpriced_unit"""
+  overpriced_unit: OrderBy
+
+  """Order by options for amount_over_median"""
+  amount_over_median: OrderBy
+
+  """Order by options for percent_over_median"""
+  percent_over_median: OrderBy
+}
+
+"""Filter input for dim_dealership GraphQL type"""
+input dim_dealershipFilterInput {
+  """Filter options for dim_dealership_skey"""
+  dim_dealership_skey: IntFilterInput
+
+  """Filter options for dealership_id"""
+  dealership_id: IntFilterInput
+
+  """Filter options for created_or_updated_timestamp"""
+  created_or_updated_timestamp: DateTimeFilterInput
+
+  """Filter options for dealer_group"""
+  dealer_group: StringFilterInput
+
+  """Filter options for dealership"""
+  dealership: StringFilterInput
+
+  """Filter options for address_line1"""
+  address_line1: StringFilterInput
+
+  """Filter options for city"""
+  city: StringFilterInput
+
+  """Filter options for state"""
+  state: StringFilterInput
+
+  """Filter options for postal_code"""
+  postal_code: StringFilterInput
+
+  """Filter options for county"""
+  county: StringFilterInput
+
+  """Filter options for bta"""
+  bta: StringFilterInput
+
+  """Filter options for region"""
+  region: StringFilterInput
+
+  """Filter options for dealer_group_logo_small"""
+  dealer_group_logo_small: StringFilterInput
+
+  """Filter options for country"""
+  country: StringFilterInput
+
+  """Conditions to be treated as AND operations"""
+  and: [dim_dealershipFilterInput]
+
+  """Conditions to be treated as OR operations"""
+  or: [dim_dealershipFilterInput]
+}
+
+"""Fields available for aggregation in dim_dealership"""
+enum dim_dealershipNumericAggregateFields {
+  dim_dealership_skey
+  dealership_id
+}
+
+"""The `DateTime` scalar represents an ISO-8601 compliant date time type."""
+scalar DateTime
+
+type fact_inventory_snapshot {
+  inventory_date_skey: Int
+  dim_dealership_skey: Int
+  dim_product_skey: Int
+  inventory_coming_soon: Long
+  inventory_added: Long
+  inventory_transferred_in: Long
+  inventory_transferred_out: Long
+  inventory_pending: Long
+  inventory_sold: Long
+  inventory_on_lot: Long
+  overpriced_units: Long
+  median_price: Decimal
+  minimum_price: Decimal
+  maximum_price: Decimal
+  condition: String
+}
+
+"""Scalar fields available in fact_inventory"""
+enum fact_inventoryScalarFields {
+  stock_number
+  inventory_date_skey
+  created_or_updated_timestamp
+  dim_dealership_skey
+  dim_product_skey
+  vin
+  web_title
+  listing_url
+  image_url
+  tags
+  condition
+  inventory_status
+  inventory_on_lot
+  age
+  cost
+  discount
+  msrp
+  sale_or_regular_price
+  sale_price
+  price
+  inventory_added
+  inventory_transferred_in
+  transfer_from_dealership
+  inventory_transferred_out
+  transfer_to_dealership
+  inventory_pending
+  days_in_pending
+  inventory_sold
+  current_stock
+  stock_count
+  median_price
+  minimum_price
+  maximum_price
+  overpriced_unit
+  amount_over_median
+  percent_over_median
+}
+
+"""Filter input for dim_date_period GraphQL type"""
+input dim_date_periodFilterInput {
+  """Filter options for date_period"""
+  date_period: StringFilterInput
+
+  """Filter options for sort_order"""
+  sort_order: LongFilterInput
+
+  """Filter options for dim_current_date_skey"""
+  dim_current_date_skey: IntFilterInput
+
+  """Filter options for dim_previous_date_skey"""
+  dim_previous_date_skey: IntFilterInput
+
+  """Conditions to be treated as AND operations"""
+  and: [dim_date_periodFilterInput]
+
+  """Conditions to be treated as OR operations"""
+  or: [dim_date_periodFilterInput]
+}
+
+"""Input type for adding Int filters"""
+input IntFilterInput {
+  """Equals"""
+  eq: Int
+
+  """Greater Than"""
+  gt: Int
+
+  """Greater Than or Equal To"""
+  gte: Int
+
+  """Less Than"""
+  lt: Int
+
+  """Less Than or Equal To"""
+  lte: Int
+
+  """Not Equals"""
+  neq: Int
+
+  """Not null test"""
+  isNull: Boolean
+
+  """In"""
+  in: [Int]
+}
+
+"""
+LocalTime represents a time of day, with no reference to a particular calendar, time zone, or date.
+
+Allowed patterns:
+- `hh:mm:ss.sssssssss`
+
+Examples:
+- `20:00:00.999`
+"""
+scalar LocalTime

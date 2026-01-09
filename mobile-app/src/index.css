@@ -1,0 +1,1003 @@
+@import "tailwindcss";
+
+/* Google Fonts - Thor Industries Brand Typography */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Open+Sans:wght@400;500;600;700&display=swap');
+
+/* =============================================================================
+   THOR INDUSTRIES DESIGN SYSTEM - PREMIUM EDITION
+   Based on thorindustries.com brand guidelines
+   ============================================================================= */
+
+/* CSS Custom Properties */
+:root {
+  /* Primary Colors */
+  --thor-charcoal: #181817;
+  --thor-off-white: #fffdfa;
+  --thor-black: #000000;
+
+  /* Accent Colors */
+  --thor-sage: #495737;
+  --thor-sage-light: #6b7a5e;
+  --thor-sage-dark: #3d4a2e;
+  --thor-gold: #a46807;
+  --thor-gold-light: #c4850d;
+  --thor-gold-dark: #8a5806;
+  --thor-steel-blue: #577d91;
+  --thor-steel-light: #6a92a8;
+  --thor-steel-dark: #4a6b7c;
+
+  /* Neutral Colors */
+  --thor-light-beige: #f7f4f0;
+  --thor-medium-gray: #8c8a7e;
+  --thor-border-gray: #d9d6cf;
+  --thor-warm-gray: #595755;
+  --thor-dark-card: #2a2928;
+
+  /* Semantic Colors */
+  --thor-success: #495737;
+  --thor-warning: #a46807;
+  --thor-info: #577d91;
+  --thor-error: #8b4049;
+
+  /* Typography */
+  --font-heading: 'Montserrat', sans-serif;
+  --font-body: 'Open Sans', sans-serif;
+
+  /* Spacing */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+
+  /* Premium Gradients */
+  --gradient-thor-primary: linear-gradient(135deg, #495737 0%, #3d4a2e 100%);
+  --gradient-thor-gold: linear-gradient(135deg, #c4850d 0%, #a46807 50%, #8a5806 100%);
+  --gradient-thor-steel: linear-gradient(135deg, #6a92a8 0%, #577d91 50%, #4a6b7c 100%);
+  --gradient-thor-accent: linear-gradient(135deg, #495737 0%, #a46807 50%, #577d91 100%);
+  --gradient-thor-header: linear-gradient(180deg, var(--thor-off-white) 0%, var(--thor-light-beige) 100%);
+  --gradient-thor-card: linear-gradient(135deg, var(--thor-off-white) 0%, rgba(247, 244, 240, 0.8) 100%);
+  --gradient-thor-dark: linear-gradient(135deg, #232322 0%, #181817 100%);
+
+  /* Glow Effects */
+  --glow-sage: 0 0 20px rgba(73, 87, 55, 0.4);
+  --glow-gold: 0 0 20px rgba(164, 104, 7, 0.4);
+  --glow-steel: 0 0 20px rgba(87, 125, 145, 0.4);
+
+  /* Premium Shadows */
+  --shadow-thor-sm: 0 1px 3px rgba(24, 24, 23, 0.08), 0 1px 2px rgba(24, 24, 23, 0.06);
+  --shadow-thor-md: 0 4px 6px -1px rgba(24, 24, 23, 0.1), 0 2px 4px -1px rgba(24, 24, 23, 0.06);
+  --shadow-thor-lg: 0 10px 15px -3px rgba(24, 24, 23, 0.1), 0 4px 6px -2px rgba(24, 24, 23, 0.05);
+  --shadow-thor-xl: 0 20px 25px -5px rgba(24, 24, 23, 0.1), 0 10px 10px -5px rgba(24, 24, 23, 0.04);
+  --shadow-thor-glow-sage: 0 4px 14px rgba(73, 87, 55, 0.25);
+  --shadow-thor-glow-gold: 0 4px 14px rgba(164, 104, 7, 0.25);
+  --shadow-thor-inset: inset 0 2px 4px rgba(24, 24, 23, 0.06);
+}
+
+/* =============================================================================
+   TAILWIND v4 THEME CONFIGURATION
+   ============================================================================= */
+
+@theme {
+  /* Color Palette - Thor Industries */
+  --color-thor-charcoal: #181817;
+  --color-thor-off-white: #fffdfa;
+  --color-thor-black: #000000;
+
+  --color-thor-sage: #495737;
+  --color-thor-sage-light: #6b7a5e;
+  --color-thor-sage-dark: #3d4a2e;
+
+  --color-thor-gold: #a46807;
+  --color-thor-gold-light: #c4850d;
+  --color-thor-gold-dark: #8a5806;
+
+  --color-thor-steel: #577d91;
+  --color-thor-steel-light: #6a92a8;
+  --color-thor-steel-dark: #4a6b7c;
+
+  --color-thor-beige: #f7f4f0;
+  --color-thor-gray-medium: #8c8a7e;
+  --color-thor-gray-border: #d9d6cf;
+  --color-thor-gray-warm: #595755;
+  --color-thor-gray-dark: #2a2928;
+
+  /* Font Families */
+  --font-heading: 'Montserrat', sans-serif;
+  --font-body: 'Open Sans', sans-serif;
+
+  /* Font Sizes */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+
+  /* Border Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+
+  /* Shadows */
+  --shadow-thor-sm: 0 1px 2px rgba(24, 24, 23, 0.05);
+  --shadow-thor-md: 0 4px 6px -1px rgba(24, 24, 23, 0.1);
+  --shadow-thor-lg: 0 10px 15px -3px rgba(24, 24, 23, 0.1);
+}
+
+/* =============================================================================
+   BASE STYLES
+   ============================================================================= */
+
+body {
+  font-family: var(--font-body);
+  color: var(--thor-charcoal);
+  background: var(--gradient-thor-header);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--thor-charcoal);
+}
+
+h1 { font-weight: 800; }
+h2 { font-weight: 700; }
+
+/* Headings with uppercase styling (Thor brand characteristic) */
+.thor-heading-uppercase {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--thor-charcoal);
+}
+
+/* Large display heading with gradient */
+.thor-heading-display {
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-size: 2.5rem;
+  letter-spacing: -0.03em;
+  background: var(--gradient-thor-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Labels (Montserrat 700, uppercase) */
+.thor-label {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--thor-medium-gray);
+}
+
+/* Value text for KPIs and highlights */
+.thor-value {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  color: var(--thor-charcoal);
+}
+
+.thor-value-gold {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  color: var(--thor-gold);
+}
+
+.thor-value-sage {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  color: var(--thor-sage);
+}
+
+/* =============================================================================
+   COMPONENT UTILITIES
+   ============================================================================= */
+
+/* Thor Button Variants - Premium Edition */
+.btn-thor-primary {
+  background: var(--gradient-thor-dark);
+  color: var(--thor-off-white);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.625rem 1.25rem;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-thor-sm);
+}
+
+.btn-thor-primary:hover {
+  background: var(--thor-charcoal);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-thor-md);
+}
+
+.btn-thor-primary:active {
+  transform: translateY(0);
+}
+
+.btn-thor-sage {
+  background: var(--gradient-thor-primary);
+  color: var(--thor-off-white);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.625rem 1.25rem;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-thor-glow-sage);
+}
+
+.btn-thor-sage:hover {
+  background: var(--thor-sage-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--glow-sage);
+}
+
+.btn-thor-sage:active {
+  transform: translateY(0);
+}
+
+.btn-thor-gold {
+  background: var(--gradient-thor-gold);
+  color: var(--thor-off-white);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.625rem 1.25rem;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-thor-glow-gold);
+}
+
+.btn-thor-gold:hover {
+  background: var(--thor-gold-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--glow-gold);
+}
+
+.btn-thor-gold:active {
+  transform: translateY(0);
+}
+
+.btn-thor-steel {
+  background: var(--gradient-thor-steel);
+  color: var(--thor-off-white);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.625rem 1.25rem;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(87, 125, 145, 0.25);
+}
+
+.btn-thor-steel:hover {
+  background: var(--thor-steel-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--glow-steel);
+}
+
+.btn-thor-steel:active {
+  transform: translateY(0);
+}
+
+.btn-thor-outline {
+  background-color: transparent;
+  color: var(--thor-charcoal);
+  border: 2px solid var(--thor-border-gray);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 1.125rem;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-thor-outline:hover {
+  background-color: var(--thor-sage);
+  border-color: var(--thor-sage);
+  color: var(--thor-off-white);
+  transform: translateY(-1px);
+}
+
+.btn-thor-outline:active {
+  transform: translateY(0);
+}
+
+/* Ghost button for subtle actions */
+.btn-thor-ghost {
+  background: transparent;
+  color: var(--thor-sage);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.5rem 1rem;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  transition: all 200ms ease;
+}
+
+.btn-thor-ghost:hover {
+  background: rgba(73, 87, 55, 0.1);
+  color: var(--thor-sage-dark);
+}
+
+/* Thor Card - Premium Edition */
+.card-thor {
+  background: var(--gradient-thor-card);
+  border: 1px solid var(--thor-border-gray);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-thor-sm);
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-thor::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient-thor-accent);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.card-thor:hover {
+  box-shadow: var(--shadow-thor-lg);
+  border-color: var(--thor-sage);
+  transform: translateY(-2px);
+}
+
+.card-thor:hover::before {
+  opacity: 1;
+}
+
+/* Card with permanent accent line */
+.card-thor-accent {
+  background: var(--gradient-thor-card);
+  border: 1px solid var(--thor-border-gray);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-thor-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-thor-accent::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-thor-accent);
+}
+
+/* KPI Card variant */
+.card-thor-kpi {
+  background: var(--thor-off-white);
+  border: 1px solid var(--thor-border-gray);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-thor-sm);
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.card-thor-kpi:hover {
+  box-shadow: var(--shadow-thor-md);
+  transform: translateY(-2px);
+}
+
+/* Elevated card for important content */
+.card-thor-elevated {
+  background: var(--thor-off-white);
+  border: none;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-thor-lg);
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-thor-elevated:hover {
+  box-shadow: var(--shadow-thor-xl);
+  transform: translateY(-4px);
+}
+
+/* Thor Input - Premium Edition */
+.input-thor {
+  background-color: var(--thor-off-white);
+  border: 2px solid var(--thor-border-gray);
+  border-radius: var(--radius-md);
+  padding: 0.625rem 0.875rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--thor-charcoal);
+  transition: all 200ms ease;
+  box-shadow: var(--shadow-thor-inset);
+}
+
+.input-thor:hover {
+  border-color: var(--thor-medium-gray);
+}
+
+.input-thor:focus {
+  outline: none;
+  border-color: var(--thor-sage);
+  box-shadow: 0 0 0 4px rgba(73, 87, 55, 0.15), var(--shadow-thor-inset);
+}
+
+.input-thor::placeholder {
+  color: var(--thor-medium-gray);
+  font-style: italic;
+}
+
+/* Select dropdown with Thor styling */
+.select-thor {
+  background-color: var(--thor-off-white);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23495737' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+  border: 2px solid var(--thor-border-gray);
+  border-radius: var(--radius-md);
+  padding: 0.625rem 2.5rem 0.625rem 0.875rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--thor-charcoal);
+  transition: all 200ms ease;
+  cursor: pointer;
+  appearance: none;
+}
+
+.select-thor:hover {
+  border-color: var(--thor-sage);
+}
+
+.select-thor:focus {
+  outline: none;
+  border-color: var(--thor-sage);
+  box-shadow: 0 0 0 4px rgba(73, 87, 55, 0.15);
+}
+
+/* =============================================================================
+   DARK MODE (Premium Analytics Theme)
+   ============================================================================= */
+
+.thor-dark {
+  --bg-dark: #181817;
+  --bg-card: #232322;
+  --bg-hover: #2d2d2b;
+  --text-primary: #fffdfa;
+  --text-secondary: #8c8a7e;
+  --text-muted: #595755;
+  --border: rgba(217, 214, 207, 0.15);
+  --border-light: rgba(217, 214, 207, 0.25);
+}
+
+.thor-dark {
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+}
+
+/* Glassmorphism card for dark mode */
+.card-thor-glass {
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(24, 24, 23, 0.95) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* =============================================================================
+   CHART TOOLTIP (Thor-branded)
+   ============================================================================= */
+
+.thor-tooltip {
+  background: rgba(24, 24, 23, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--thor-border-gray);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  font-family: var(--font-body);
+}
+
+/* =============================================================================
+   ACCENT LINES & DECORATIVE ELEMENTS
+   ============================================================================= */
+
+.thor-accent-line {
+  height: 4px;
+  background: linear-gradient(90deg, var(--thor-sage), var(--thor-gold), var(--thor-steel-blue));
+  border-radius: 2px;
+}
+
+.thor-accent-line-thick {
+  height: 6px;
+  background: linear-gradient(90deg, var(--thor-sage), var(--thor-gold), var(--thor-steel-blue));
+  border-radius: 3px;
+  box-shadow: 0 2px 8px rgba(73, 87, 55, 0.3);
+}
+
+.thor-accent-line-vertical {
+  width: 4px;
+  background: linear-gradient(180deg, var(--thor-sage), var(--thor-gold));
+  border-radius: 2px;
+}
+
+/* Animated gradient line */
+.thor-accent-line-animated {
+  height: 4px;
+  background: linear-gradient(90deg, var(--thor-sage), var(--thor-gold), var(--thor-steel-blue), var(--thor-sage));
+  background-size: 300% 100%;
+  border-radius: 2px;
+  animation: gradient-shift 4s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Section divider with Thor branding */
+.thor-divider {
+  position: relative;
+  height: 1px;
+  background: var(--thor-border-gray);
+  margin: 2rem 0;
+}
+
+.thor-divider::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px;
+  height: 4px;
+  background: var(--gradient-thor-accent);
+  border-radius: 2px;
+}
+
+/* =============================================================================
+   STATUS INDICATORS & BADGES
+   ============================================================================= */
+
+.badge-thor-new {
+  background: var(--gradient-thor-primary);
+  color: var(--thor-off-white);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: var(--font-heading);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-thor-glow-sage);
+}
+
+.badge-thor-used {
+  background: var(--gradient-thor-gold);
+  color: var(--thor-off-white);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: var(--font-heading);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-thor-glow-gold);
+}
+
+/* Pill badges for filter tags */
+.badge-thor-filter {
+  background: rgba(73, 87, 55, 0.15);
+  color: var(--thor-sage);
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-heading);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  transition: all 200ms ease;
+}
+
+.badge-thor-filter:hover {
+  background: rgba(73, 87, 55, 0.25);
+}
+
+/* Info badges */
+.badge-thor-info {
+  background: rgba(87, 125, 145, 0.15);
+  color: var(--thor-steel-blue);
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-md);
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: var(--font-heading);
+}
+
+/* =============================================================================
+   SCROLLBAR STYLING (Optional)
+   ============================================================================= */
+
+.thor-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.thor-scrollbar::-webkit-scrollbar-track {
+  background: var(--thor-light-beige);
+  border-radius: 4px;
+}
+
+.thor-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--thor-border-gray);
+  border-radius: 4px;
+}
+
+.thor-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--thor-medium-gray);
+}
+
+/* =============================================================================
+   ANIMATIONS - PREMIUM EDITION
+   ============================================================================= */
+
+@keyframes thor-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-thor-pulse {
+  animation: thor-pulse 2s ease-in-out infinite;
+}
+
+@keyframes thor-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-thor-fade-in {
+  animation: thor-fade-in 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes thor-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-thor-slide-up {
+  animation: thor-slide-up 500ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes thor-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-thor-scale-in {
+  animation: thor-scale-in 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes thor-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(73, 87, 55, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(73, 87, 55, 0.5);
+  }
+}
+
+.animate-thor-glow {
+  animation: thor-glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes thor-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-thor-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--thor-light-beige) 0%,
+    var(--thor-off-white) 50%,
+    var(--thor-light-beige) 100%
+  );
+  background-size: 200% 100%;
+  animation: thor-shimmer 1.5s infinite;
+}
+
+/* Staggered animation delays for lists */
+.animate-thor-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.animate-thor-stagger > *:nth-child(2) { animation-delay: 50ms; }
+.animate-thor-stagger > *:nth-child(3) { animation-delay: 100ms; }
+.animate-thor-stagger > *:nth-child(4) { animation-delay: 150ms; }
+.animate-thor-stagger > *:nth-child(5) { animation-delay: 200ms; }
+.animate-thor-stagger > *:nth-child(6) { animation-delay: 250ms; }
+.animate-thor-stagger > *:nth-child(7) { animation-delay: 300ms; }
+.animate-thor-stagger > *:nth-child(8) { animation-delay: 350ms; }
+
+/* Loading spinner with Thor colors */
+.thor-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--thor-border-gray);
+  border-top-color: var(--thor-sage);
+  border-radius: 50%;
+  animation: thor-spin 0.8s linear infinite;
+}
+
+@keyframes thor-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* =============================================================================
+   HEADER & NAVIGATION
+   ============================================================================= */
+
+.thor-header {
+  background: var(--thor-off-white);
+  border-bottom: 1px solid var(--thor-border-gray);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.thor-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-thor-accent);
+}
+
+.thor-nav-item {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--thor-warm-gray);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  transition: all 200ms ease;
+}
+
+.thor-nav-item:hover {
+  color: var(--thor-charcoal);
+  background: var(--thor-light-beige);
+}
+
+.thor-nav-item.active {
+  color: var(--thor-off-white);
+  background: var(--gradient-thor-primary);
+}
+
+/* =============================================================================
+   TABLE STYLING
+   ============================================================================= */
+
+.thor-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.thor-table th {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--thor-medium-gray);
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: var(--thor-light-beige);
+  border-bottom: 2px solid var(--thor-border-gray);
+}
+
+.thor-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--thor-border-gray);
+  font-size: 0.875rem;
+  color: var(--thor-charcoal);
+}
+
+.thor-table tbody tr {
+  transition: background-color 150ms ease;
+}
+
+.thor-table tbody tr:hover {
+  background: rgba(73, 87, 55, 0.05);
+}
+
+.thor-table tbody tr:nth-child(even) {
+  background: var(--thor-light-beige);
+}
+
+.thor-table tbody tr:nth-child(even):hover {
+  background: rgba(73, 87, 55, 0.08);
+}
+
+/* =============================================================================
+   CHART COMPONENTS
+   ============================================================================= */
+
+.thor-chart-card {
+  background: var(--thor-off-white);
+  border: 1px solid var(--thor-border-gray);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-thor-sm);
+  overflow: hidden;
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.thor-chart-card:hover {
+  box-shadow: var(--shadow-thor-lg);
+  transform: translateY(-2px);
+}
+
+.thor-chart-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--thor-border-gray);
+  background: linear-gradient(180deg, var(--thor-off-white) 0%, var(--thor-light-beige) 100%);
+}
+
+.thor-chart-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--thor-charcoal);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.thor-chart-subtitle {
+  font-size: 0.75rem;
+  color: var(--thor-medium-gray);
+  margin-top: 0.125rem;
+}
+
+.thor-chart-body {
+  padding: 1.25rem;
+}
+
+/* Chart tooltip (for Recharts) */
+.thor-chart-tooltip {
+  background: rgba(24, 24, 23, 0.95) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--thor-border-gray) !important;
+  border-radius: var(--radius-lg) !important;
+  padding: 0.75rem 1rem !important;
+  box-shadow: var(--shadow-thor-lg) !important;
+}
+
+.thor-chart-tooltip .label {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--thor-off-white);
+  margin-bottom: 0.25rem;
+}
+
+.thor-chart-tooltip .value {
+  color: var(--thor-medium-gray);
+  font-size: 0.875rem;
+}
+
+/* =============================================================================
+   FILTER PANEL
+   ============================================================================= */
+
+.thor-filter-panel {
+  background: var(--thor-off-white);
+  border: 1px solid var(--thor-border-gray);
+  border-radius: var(--radius-xl);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-thor-sm);
+}
+
+.thor-filter-label {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--thor-medium-gray);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+/* Active filter banner */
+.thor-filter-banner {
+  background: linear-gradient(135deg, rgba(73, 87, 55, 0.1) 0%, rgba(164, 104, 7, 0.1) 100%);
+  border: 1px solid rgba(73, 87, 55, 0.3);
+  border-radius: var(--radius-lg);
+  padding: 0.875rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.thor-filter-banner-text {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--thor-sage);
+}
+
+/* =============================================================================
+   FOOTER
+   ============================================================================= */
+
+.thor-footer {
+  border-top: 1px solid var(--thor-border-gray);
+  padding: 2rem 0;
+  text-align: center;
+}
+
+.thor-footer-text {
+  font-size: 0.75rem;
+  color: var(--thor-medium-gray);
+}
+
+.thor-footer-brand {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.875rem;
+  background: var(--gradient-thor-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

@@ -1,0 +1,774 @@
+{
+  "extraction_time": "2025-12-31T13:41:37.362764",
+  "workspace": {
+    "id": "9c727ce4-5f7e-4008-b31e-f3e3bd8e0adc",
+    "name": "THOR Industries"
+  },
+  "lakehouse": {
+    "id": "06dc42ac-4151-4bb9-94fb-1a03edf49600",
+    "name": "thor_industries_de_lakehouse"
+  },
+  "schemas": {
+    "bronze": {
+      "tables": {
+        "dealer_scrapes_ac_nelsen_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_ac_nelsen_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_autotrader": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_autotrader",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_basdens_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_basdens_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_berryland": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_berryland",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_bishs_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_bishs_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_blue_compass_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_blue_compass_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_bob_hurley_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_bob_hurley_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_bretz_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_bretz_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_camping_world": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_camping_world",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_cookeville_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_cookeville_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_dealer_spike": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_dealer_spike",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_demontrond_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_demontrond_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_eu_mobile_de": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_eu_mobile_de",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_fun_town_mi_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_fun_town_mi_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_fun_town_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_fun_town_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_general_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_general_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_giant_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_giant_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_great_american_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_great_american_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_hoover_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_hoover_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_interact_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_interact_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_jeff_couch_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_jeff_couch_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_johnson_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_johnson_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_joplin_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_joplin_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_la_mesa_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_la_mesa_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_lazydays_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_lazydays_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_lerch_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_lerch_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_lone_star_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_lone_star_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_mcclains_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_mcclains_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_meyers_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_meyers_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_mike_thompson_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_mike_thompson_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_open_road_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_open_road_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_optimum_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_optimum_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_premier_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_premier_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_ride_digital": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_ride_digital",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_rocky_mountain": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_rocky_mountain",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_rv_country": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_rv_country",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_rv_trader": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_rv_trader",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_rvs_of_sacramento": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_rvs_of_sacramento",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_tacoma_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_tacoma_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_traveland_rv": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/dealer_scrapes_traveland_rv",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "power_bi_report_page_views": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/power_bi_report_page_views",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "power_bi_report_pages": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/power_bi_report_pages",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "power_bi_report_views": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/power_bi_report_views",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "power_bi_reports": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/power_bi_reports",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "power_bi_users": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/power_bi_users",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "social_media_reddit": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/social_media_reddit",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "statistical_survey_rv_registrations": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/statistical_survey_rv_registrations",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "user_managed_data_dealership_attributes": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/user_managed_data_dealership_attributes",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "user_managed_data_product_attributes": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/user_managed_data_product_attributes",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "user_managed_data_rv_types": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/bronze/user_managed_data_rv_types",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        }
+      }
+    },
+    "common": {
+      "tables": {
+        "mlv_daily_report_of_operations": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/common/mlv_daily_report_of_operations",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        }
+      }
+    },
+    "dbo": {
+      "tables": {
+        "sys_dq_metrics": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/dbo/sys_dq_metrics",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        }
+      }
+    },
+    "gold": {
+      "tables": {
+        "dim_date": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/gold/dim_date",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dim_date_period": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/gold/dim_date_period",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dim_dealership": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/gold/dim_dealership",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dim_power_bi_report": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/gold/dim_power_bi_report",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dim_power_bi_user": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/gold/dim_power_bi_user",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dim_product": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/gold/dim_product",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "fact_inventory": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/gold/fact_inventory",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "fact_inventory_current": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/gold/fact_inventory_current",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "fact_inventory_sales": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/gold/fact_inventory_sales",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "fact_inventory_snapshot": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/gold/fact_inventory_snapshot",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "fact_power_bi_usage": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/gold/fact_power_bi_usage",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "fact_statistical_survey_registration": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/gold/fact_statistical_survey_registration",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        }
+      }
+    },
+    "secure": {
+      "tables": {
+        "dim_oem": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/secure/dim_oem",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        }
+      }
+    },
+    "silver": {
+      "tables": {
+        "dealer_scrapes": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/silver/dealer_scrapes",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        },
+        "dealer_scrapes_eu": {
+          "path": "06dc42ac-4151-4bb9-94fb-1a03edf49600/Tables/silver/dealer_scrapes_eu",
+          "schema": {
+            "columns": [],
+            "partition_columns": [],
+            "num_files": 0,
+            "total_size_bytes": 0
+          },
+          "sample_data": [],
+          "sample_columns": []
+        }
+      }
+    }
+  }
+}

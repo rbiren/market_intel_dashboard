@@ -1,0 +1,24 @@
+# Microsoft Fabric Lakehouse Access - Dependencies
+# ================================================
+
+# Azure Identity (authentication)
+azure-identity>=1.15.0
+
+# OneLake / Azure Storage access
+azure-storage-file-datalake>=12.14.0
+
+# SQL Endpoint access
+pyodbc>=5.0.0
+pandas>=2.0.0
+
+# REST API access
+requests>=2.31.0
+
+# Optional: Fabric Python SDK (community)
+# msfabricpysdkcore>=0.1.0
+
+# Optional: Semantic Link for Power BI integration
+# semantic-link>=0.7.0
+
+# Optional: Delta Lake for direct table access
+# deltalake>=0.14.0
