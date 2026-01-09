@@ -4,6 +4,13 @@ import { AnalyticsTab } from '../components/analytics/AnalyticsTab'
 import { AnalyticsTabV2 } from '../components/analytics/AnalyticsTabV2'
 import { AnalyticsTabV3 } from '../components/analytics/AnalyticsTabV3'
 import { AnalyticsTabMobile } from '../components/analytics/AnalyticsTabMobile'
+import { AnalyticsTabD } from '../components/analytics/AnalyticsTabD'
+import { AnalyticsTabE } from '../components/analytics/AnalyticsTabE'
+import { AnalyticsTabF } from '../components/analytics/AnalyticsTabF'
+import { AnalyticsTabG } from '../components/analytics/AnalyticsTabG'
+import { AnalyticsTabH } from '../components/analytics/AnalyticsTabH'
+import { AnalyticsTabI } from '../components/analytics/AnalyticsTabI'
+import { AnalyticsTabJ } from '../components/analytics/AnalyticsTabJ'
 
 // Define types locally to avoid import issues
 interface AggregationItem {
@@ -257,7 +264,7 @@ export default function Dashboard() {
   const { filters: filterOptions, loading: filtersLoading } = useFilterOptions()
   const [activeTab, setActiveTab] = useState<TabType>('summary')
   const [showFilters, setShowFilters] = useState(true)
-  const [analyticsVersion, setAnalyticsVersion] = useState<'A' | 'B' | 'C' | 'M'>('C') // A/B/C/M testing toggle
+  const [analyticsVersion, setAnalyticsVersion] = useState<'A' | 'B' | 'C' | 'M' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J'>('C') // A/B/C/M/D/E/F/G/H/I/J testing toggle
 
   // Filter state
   const [rvClass, setRvClass] = useState(PRESET_FILTERS.rv_class)
@@ -735,60 +742,127 @@ export default function Dashboard() {
 
         {activeTab === 'analytics' && (
           <div>
-            {/* A/B/C Version Toggle - Thor branded */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold text-[var(--thor-warm-gray)] font-[var(--font-heading)]">Analytics Version:</span>
-                <div className="flex bg-[var(--thor-light-beige)] p-1 rounded-lg">
-                  <button
-                    onClick={() => setAnalyticsVersion('A')}
-                    className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-all font-[var(--font-heading)] ${
-                      analyticsVersion === 'A'
-                        ? 'bg-[var(--thor-off-white)] text-[var(--thor-sage)] shadow-sm'
-                        : 'text-[var(--thor-medium-gray)] hover:text-[var(--thor-charcoal)]'
-                    }`}
-                  >
-                    A
-                    <span className="ml-1 text-xs opacity-70">(Recharts)</span>
-                  </button>
-                  <button
-                    onClick={() => setAnalyticsVersion('B')}
-                    className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-all font-[var(--font-heading)] ${
-                      analyticsVersion === 'B'
-                        ? 'bg-[var(--thor-off-white)] text-[var(--thor-steel-blue)] shadow-sm'
-                        : 'text-[var(--thor-medium-gray)] hover:text-[var(--thor-charcoal)]'
-                    }`}
-                  >
-                    B
-                    <span className="ml-1 text-xs opacity-70">(Tremor)</span>
-                  </button>
-                  <button
-                    onClick={() => setAnalyticsVersion('C')}
-                    className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-all font-[var(--font-heading)] ${
-                      analyticsVersion === 'C'
-                        ? 'bg-gradient-to-r from-[var(--thor-sage)] to-[var(--thor-gold)] text-[var(--thor-off-white)] shadow-sm'
-                        : 'text-[var(--thor-medium-gray)] hover:text-[var(--thor-charcoal)]'
-                    }`}
-                  >
-                    C
-                    <span className="ml-1 text-xs opacity-75">(Premium)</span>
-                  </button>
-                  <button
-                    onClick={() => setAnalyticsVersion('M')}
-                    className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-all font-[var(--font-heading)] ${
-                      analyticsVersion === 'M'
-                        ? 'bg-gradient-to-r from-[var(--thor-steel-blue)] to-[var(--thor-sage)] text-[var(--thor-off-white)] shadow-sm'
-                        : 'text-[var(--thor-medium-gray)] hover:text-[var(--thor-charcoal)]'
-                    }`}
-                  >
-                    M
-                    <span className="ml-1 text-xs opacity-75">(Mobile)</span>
-                  </button>
-                </div>
+            {/* Library Version Toggle - Thor branded */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold text-[var(--thor-warm-gray)] font-[var(--font-heading)]">Visualization Library:</span>
+                <span className="text-xs text-[var(--thor-medium-gray)] bg-[var(--thor-sage)]/10 px-2 py-1 rounded font-semibold">
+                  11 Libraries
+                </span>
               </div>
-              <span className="text-xs text-[var(--thor-medium-gray)] bg-[var(--thor-sage)]/10 px-2 py-1 rounded font-semibold">
-                A/B/C/M Testing
-              </span>
+              <div className="flex flex-wrap gap-2 bg-[var(--thor-light-beige)] p-2 rounded-xl">
+                <button
+                  onClick={() => setAnalyticsVersion('A')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all font-[var(--font-heading)] ${
+                    analyticsVersion === 'A'
+                      ? 'bg-[var(--thor-off-white)] text-[var(--thor-sage)] shadow-sm'
+                      : 'text-[var(--thor-medium-gray)] hover:text-[var(--thor-charcoal)] hover:bg-white/50'
+                  }`}
+                >
+                  A <span className="opacity-70">Recharts</span>
+                </button>
+                <button
+                  onClick={() => setAnalyticsVersion('B')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all font-[var(--font-heading)] ${
+                    analyticsVersion === 'B'
+                      ? 'bg-[var(--thor-off-white)] text-[var(--thor-steel-blue)] shadow-sm'
+                      : 'text-[var(--thor-medium-gray)] hover:text-[var(--thor-charcoal)] hover:bg-white/50'
+                  }`}
+                >
+                  B <span className="opacity-70">Tremor</span>
+                </button>
+                <button
+                  onClick={() => setAnalyticsVersion('C')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all font-[var(--font-heading)] ${
+                    analyticsVersion === 'C'
+                      ? 'bg-gradient-to-r from-[var(--thor-sage)] to-[var(--thor-gold)] text-[var(--thor-off-white)] shadow-sm'
+                      : 'text-[var(--thor-medium-gray)] hover:text-[var(--thor-charcoal)] hover:bg-white/50'
+                  }`}
+                >
+                  C <span className="opacity-75">ECharts</span>
+                </button>
+                <button
+                  onClick={() => setAnalyticsVersion('M')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all font-[var(--font-heading)] ${
+                    analyticsVersion === 'M'
+                      ? 'bg-gradient-to-r from-[var(--thor-steel-blue)] to-[var(--thor-sage)] text-[var(--thor-off-white)] shadow-sm'
+                      : 'text-[var(--thor-medium-gray)] hover:text-[var(--thor-charcoal)] hover:bg-white/50'
+                  }`}
+                >
+                  M <span className="opacity-75">Mobile</span>
+                </button>
+                <div className="w-px h-6 bg-[var(--thor-border-gray)] mx-1 self-center" />
+                <button
+                  onClick={() => setAnalyticsVersion('D')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all font-[var(--font-heading)] ${
+                    analyticsVersion === 'D'
+                      ? 'bg-[var(--thor-off-white)] text-[var(--thor-sage)] shadow-sm'
+                      : 'text-[var(--thor-medium-gray)] hover:text-[var(--thor-charcoal)] hover:bg-white/50'
+                  }`}
+                >
+                  D <span className="opacity-70">Visx</span>
+                </button>
+                <button
+                  onClick={() => setAnalyticsVersion('E')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all font-[var(--font-heading)] ${
+                    analyticsVersion === 'E'
+                      ? 'bg-[var(--thor-off-white)] text-[var(--thor-gold)] shadow-sm'
+                      : 'text-[var(--thor-medium-gray)] hover:text-[var(--thor-charcoal)] hover:bg-white/50'
+                  }`}
+                >
+                  E <span className="opacity-70">Nivo</span>
+                </button>
+                <button
+                  onClick={() => setAnalyticsVersion('F')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all font-[var(--font-heading)] ${
+                    analyticsVersion === 'F'
+                      ? 'bg-[var(--thor-off-white)] text-[var(--thor-steel-blue)] shadow-sm'
+                      : 'text-[var(--thor-medium-gray)] hover:text-[var(--thor-charcoal)] hover:bg-white/50'
+                  }`}
+                >
+                  F <span className="opacity-70">Victory</span>
+                </button>
+                <button
+                  onClick={() => setAnalyticsVersion('G')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all font-[var(--font-heading)] ${
+                    analyticsVersion === 'G'
+                      ? 'bg-[var(--thor-off-white)] text-purple-600 shadow-sm'
+                      : 'text-[var(--thor-medium-gray)] hover:text-[var(--thor-charcoal)] hover:bg-white/50'
+                  }`}
+                >
+                  G <span className="opacity-70">Plotly</span>
+                </button>
+                <button
+                  onClick={() => setAnalyticsVersion('H')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all font-[var(--font-heading)] ${
+                    analyticsVersion === 'H'
+                      ? 'bg-[var(--thor-off-white)] text-pink-600 shadow-sm'
+                      : 'text-[var(--thor-medium-gray)] hover:text-[var(--thor-charcoal)] hover:bg-white/50'
+                  }`}
+                >
+                  H <span className="opacity-70">Chart.js</span>
+                </button>
+                <button
+                  onClick={() => setAnalyticsVersion('I')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all font-[var(--font-heading)] ${
+                    analyticsVersion === 'I'
+                      ? 'bg-[var(--thor-off-white)] text-teal-600 shadow-sm'
+                      : 'text-[var(--thor-medium-gray)] hover:text-[var(--thor-charcoal)] hover:bg-white/50'
+                  }`}
+                >
+                  I <span className="opacity-70">Observable</span>
+                </button>
+                <button
+                  onClick={() => setAnalyticsVersion('J')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all font-[var(--font-heading)] ${
+                    analyticsVersion === 'J'
+                      ? 'bg-[var(--thor-off-white)] text-orange-600 shadow-sm'
+                      : 'text-[var(--thor-medium-gray)] hover:text-[var(--thor-charcoal)] hover:bg-white/50'
+                  }`}
+                >
+                  J <span className="opacity-70">AntV/G2</span>
+                </button>
+              </div>
             </div>
 
             {/* Render selected version */}
@@ -815,6 +889,55 @@ export default function Dashboard() {
             )}
             {analyticsVersion === 'M' && (
               <AnalyticsTabMobile
+                summaryData={summaryData}
+                inventoryItems={inventoryData?.items || []}
+                loading={summaryLoading || inventoryLoading}
+              />
+            )}
+            {analyticsVersion === 'D' && (
+              <AnalyticsTabD
+                summaryData={summaryData}
+                inventoryItems={inventoryData?.items || []}
+                loading={summaryLoading || inventoryLoading}
+              />
+            )}
+            {analyticsVersion === 'E' && (
+              <AnalyticsTabE
+                summaryData={summaryData}
+                inventoryItems={inventoryData?.items || []}
+                loading={summaryLoading || inventoryLoading}
+              />
+            )}
+            {analyticsVersion === 'F' && (
+              <AnalyticsTabF
+                summaryData={summaryData}
+                inventoryItems={inventoryData?.items || []}
+                loading={summaryLoading || inventoryLoading}
+              />
+            )}
+            {analyticsVersion === 'G' && (
+              <AnalyticsTabG
+                summaryData={summaryData}
+                inventoryItems={inventoryData?.items || []}
+                loading={summaryLoading || inventoryLoading}
+              />
+            )}
+            {analyticsVersion === 'H' && (
+              <AnalyticsTabH
+                summaryData={summaryData}
+                inventoryItems={inventoryData?.items || []}
+                loading={summaryLoading || inventoryLoading}
+              />
+            )}
+            {analyticsVersion === 'I' && (
+              <AnalyticsTabI
+                summaryData={summaryData}
+                inventoryItems={inventoryData?.items || []}
+                loading={summaryLoading || inventoryLoading}
+              />
+            )}
+            {analyticsVersion === 'J' && (
+              <AnalyticsTabJ
                 summaryData={summaryData}
                 inventoryItems={inventoryData?.items || []}
                 loading={summaryLoading || inventoryLoading}

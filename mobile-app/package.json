@@ -10,18 +10,32 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ant-design/charts": "^2.6.7",
     "@apollo/client": "^4.0.11",
     "@azure/msal-browser": "^4.27.0",
     "@azure/msal-react": "^3.0.23",
+    "@nivo/bar": "^0.99.0",
+    "@nivo/core": "^0.99.0",
+    "@nivo/line": "^0.99.0",
+    "@nivo/pie": "^0.99.0",
+    "@nivo/radar": "^0.99.0",
+    "@nivo/treemap": "^0.99.0",
+    "@observablehq/plot": "^0.6.17",
     "@tremor/react": "^3.18.7",
+    "@visx/visx": "^3.12.0",
+    "chart.js": "^4.5.1",
     "echarts": "^6.0.0",
     "echarts-for-react": "^3.0.5",
     "graphql": "^16.12.0",
+    "plotly.js": "^3.3.1",
     "react": "^19.2.0",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.0",
     "react-is": "^19.2.3",
+    "react-plotly.js": "^2.6.0",
     "recharts": "^3.6.0",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "victory": "^37.3.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
