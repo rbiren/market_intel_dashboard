@@ -85,6 +85,9 @@ interface AggregatedSummary {
   by_manufacturer: AggregationItem[]
   by_condition: AggregationItem[]
   by_state: AggregationItem[]
+  by_region?: AggregationItem[]
+  by_city?: AggregationItem[]
+  by_county?: AggregationItem[]
 }
 
 interface InventoryItem {
@@ -916,6 +919,189 @@ function GeographicRoseChart({ data, onSelect }: { data: AggregationItem[], onSe
   )
 }
 
+// Region Distribution Treemap
+function RegionTreemapChart({ data }: { data: AggregationItem[] }) {
+  const sortedData = [...data].sort((a, b) => b.count - a.count).slice(0, 10)
+  const total = sortedData.reduce((sum, d) => sum + d.count, 0)
+
+  const option: echarts.EChartsOption = {
+    backgroundColor: 'transparent',
+    animationDuration: 1500,
+    animationEasing: 'cubicOut',
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+      padding: 0,
+      formatter: (params: EChartsTooltipParams) => {
+        const item = sortedData.find(d => d.name === params.name)
+        const pct = total > 0 ? ((params.value / total) * 100).toFixed(1) : '0'
+        return createGlassTooltip(`
+          <div style="color: ${COLORS.textPrimary}; font-weight: 600; font-size: 14px; margin-bottom: 8px;">
+            ${params.name}
+          </div>
+          <div style="display: flex; justify-content: space-between; gap: 20px; margin-bottom: 4px;">
+            <span style="color: ${COLORS.textSecondary};">Units</span>
+            <span style="color: ${COLORS.textPrimary}; font-weight: 600;">${formatChartNumber(params.value)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; gap: 20px; margin-bottom: 4px;">
+            <span style="color: ${COLORS.textSecondary};">Share</span>
+            <span style="color: ${COLORS.primary}; font-weight: 600;">${pct}%</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; gap: 20px;">
+            <span style="color: ${COLORS.textSecondary};">Avg Price</span>
+            <span style="color: ${COLORS.secondary}; font-weight: 600;">${formatChartPrice(item?.avg_price)}</span>
+          </div>
+        `)
+      },
+    },
+    series: [
+      {
+        type: 'treemap',
+        data: sortedData.map((d, idx) => ({
+          name: d.name,
+          value: d.count,
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
+              { offset: 0, color: echarts.color.modifyHSL(COLORS.accent, idx * 30) },
+              { offset: 1, color: echarts.color.modifyHSL(COLORS.accent, idx * 30, undefined, -0.2) },
+            ]),
+          },
+        })),
+        roam: false,
+        breadcrumb: { show: false },
+        label: {
+          show: true,
+          formatter: '{b}\n{c}',
+          color: COLORS.textPrimary,
+          fontSize: 11,
+          fontWeight: 600,
+        },
+        itemStyle: {
+          borderColor: COLORS.bgDark,
+          borderWidth: 2,
+          gapWidth: 2,
+        },
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 20,
+            shadowColor: COLORS.glow,
+          },
+        },
+        universalTransition: true,
+      },
+    ],
+  }
+
+  return (
+    <ReactECharts
+      option={option}
+      style={{ height: 280 }}
+      opts={{ renderer: 'canvas' }}
+    />
+  )
+}
+
+// Top Cities Horizontal Bar Chart
+function TopCitiesBarChart({ data }: { data: AggregationItem[] }) {
+  const topCities = [...data].sort((a, b) => b.count - a.count).slice(0, 10)
+  const maxValue = Math.max(...topCities.map(d => d.count))
+
+  const option: echarts.EChartsOption = {
+    backgroundColor: 'transparent',
+    animationDuration: 1500,
+    animationEasing: 'cubicOut',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+      padding: 0,
+      formatter: (params: EChartsTooltipParams[]) => {
+        const p = Array.isArray(params) ? params[0] : params
+        const item = topCities.find(d => d.name === p.name)
+        return createGlassTooltip(`
+          <div style="color: ${COLORS.textPrimary}; font-weight: 600; font-size: 14px; margin-bottom: 8px;">
+            ${p.name}
+          </div>
+          <div style="display: flex; justify-content: space-between; gap: 20px; margin-bottom: 4px;">
+            <span style="color: ${COLORS.textSecondary};">Units</span>
+            <span style="color: ${COLORS.textPrimary}; font-weight: 600;">${formatChartNumber(p.value)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; gap: 20px;">
+            <span style="color: ${COLORS.textSecondary};">Avg Price</span>
+            <span style="color: ${COLORS.secondary}; font-weight: 600;">${formatChartPrice(item?.avg_price)}</span>
+          </div>
+        `)
+      },
+    },
+    grid: {
+      left: '3%',
+      right: '8%',
+      top: '3%',
+      bottom: '3%',
+      containLabel: true,
+    },
+    xAxis: {
+      type: 'value',
+      max: maxValue * 1.1,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { show: false },
+      splitLine: { show: false },
+    },
+    yAxis: {
+      type: 'category',
+      data: topCities.map(d => d.name.length > 15 ? d.name.slice(0, 12) + '...' : d.name).reverse(),
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: {
+        color: COLORS.textSecondary,
+        fontSize: 11,
+      },
+    },
+    series: [
+      {
+        type: 'bar',
+        data: topCities.map(d => d.count).reverse(),
+        barWidth: 16,
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+            { offset: 0, color: COLORS.secondary },
+            { offset: 1, color: echarts.color.modifyHSL(COLORS.secondary, undefined, undefined, 0.2) },
+          ]),
+          borderRadius: [0, 8, 8, 0],
+          shadowBlur: 10,
+          shadowColor: COLORS.glowGold,
+          shadowOffsetX: 4,
+        },
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 25,
+            shadowColor: COLORS.glowGold,
+          },
+        },
+        label: {
+          show: true,
+          position: 'right',
+          color: COLORS.textSecondary,
+          fontSize: 10,
+          formatter: (params: EChartsTooltipParams) => formatChartNumber(params.value),
+        },
+        universalTransition: true,
+      },
+    ],
+  }
+
+  return (
+    <ReactECharts
+      option={option}
+      style={{ height: 280 }}
+      opts={{ renderer: 'canvas' }}
+    />
+  )
+}
+
 // Price Comparison Radar
 function PriceRadarChart({ data }: { data: AggregationItem[] }) {
   const sortedData = [...data]
@@ -1315,6 +1501,31 @@ function AnalyticsContentV3({ summaryData, inventoryItems, loading: initialLoadi
           />
         </GlassCard>
       </div>
+
+      {/* Geographic Deep Dive Row - Region + City */}
+      {(displayData.by_region?.length || displayData.by_city?.length) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <GlassCard title="Regional Distribution" subtitle="Inventory by region" badge="Treemap">
+            {displayData.by_region && displayData.by_region.length > 0 ? (
+              <RegionTreemapChart data={displayData.by_region} />
+            ) : (
+              <div className="h-64 flex items-center justify-center">
+                <span style={{ color: COLORS.textMuted }}>No region data available</span>
+              </div>
+            )}
+          </GlassCard>
+
+          <GlassCard title="Top Cities" subtitle="Highest inventory concentration" badge="Premium">
+            {displayData.by_city && displayData.by_city.length > 0 ? (
+              <TopCitiesBarChart data={displayData.by_city} />
+            ) : (
+              <div className="h-64 flex items-center justify-center">
+                <span style={{ color: COLORS.textMuted }}>No city data available</span>
+              </div>
+            )}
+          </GlassCard>
+        </div>
+      )}
 
       {/* Price Analysis Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

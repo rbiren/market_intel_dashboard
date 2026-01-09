@@ -43,6 +43,9 @@ interface AggregatedSummary {
   by_manufacturer: AggregationItem[]
   by_condition: AggregationItem[]
   by_state: AggregationItem[]
+  by_region?: AggregationItem[]
+  by_city?: AggregationItem[]
+  by_county?: AggregationItem[]
 }
 
 interface InventoryItem {
@@ -395,6 +398,105 @@ function GeographicDistribution({ data }: { data: AggregationItem[] }) {
   )
 }
 
+// Region Distribution as DonutChart
+function RegionDistribution({ data }: { data: AggregationItem[] }) {
+  const sortedData = [...data]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8)
+
+  const chartData = sortedData.map(item => ({
+    name: item.name,
+    value: item.count,
+    avgPrice: item.avg_price
+  }))
+
+  const total = sortedData.reduce((sum, item) => sum + item.count, 0)
+
+  const colors: TremorColor[] = ['blue', 'cyan', 'indigo', 'violet', 'purple', 'fuchsia', 'pink', 'rose']
+
+  return (
+    <div>
+      <Flex justifyContent="between" className="mb-3">
+        <Title className="text-sm">Distribution by Region</Title>
+        <Badge color="indigo">{data.length} regions</Badge>
+      </Flex>
+      <div className="relative">
+        <DonutChart
+          data={chartData}
+          category="value"
+          index="name"
+          colors={colors}
+          valueFormatter={(v) => formatChartNumber(v)}
+          showLabel={true}
+          showAnimation={true}
+          className="h-56"
+        />
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="text-center">
+            <Text className="text-gray-400 text-xs">Total</Text>
+            <Metric className="text-lg">{formatCompactValue(total, 'count')}</Metric>
+          </div>
+        </div>
+      </div>
+      {/* Region Legend with Avg Price */}
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        {sortedData.slice(0, 6).map((item, idx) => (
+          <div key={item.name} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+            <Flex className="gap-2">
+              <div
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: `var(--tremor-content-${colors[idx]})` }}
+              />
+              <Text className="text-xs truncate">{item.name}</Text>
+            </Flex>
+            <Text className="text-xs text-gray-500">{formatCompactValue(item.avg_price)}</Text>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Top Cities as BarList with Value and Avg Price
+function TopCitiesDistribution({ data }: { data: AggregationItem[] }) {
+  const topCities = [...data]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 12)
+
+  const barListData = topCities.map(item => ({
+    name: item.name,
+    value: item.count,
+  }))
+
+  return (
+    <div>
+      <Flex justifyContent="between" className="mb-3">
+        <Title className="text-sm">Top Cities by Inventory</Title>
+        <Badge color="amber">{data.length} cities</Badge>
+      </Flex>
+      <BarList
+        data={barListData}
+        valueFormatter={(v) => formatChartNumber(v)}
+        showAnimation={true}
+        color="amber"
+      />
+      {/* City stats summary */}
+      <div className="mt-4 p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg">
+        <Flex justifyContent="between">
+          <div>
+            <Text className="text-xs text-amber-700">Highest Concentration</Text>
+            <Text className="font-semibold text-amber-900">{topCities[0]?.name}</Text>
+          </div>
+          <div className="text-right">
+            <Text className="text-xs text-amber-700">Avg Price (Top City)</Text>
+            <Text className="font-semibold text-amber-900">{formatChartPrice(topCities[0]?.avg_price)}</Text>
+          </div>
+        </Flex>
+      </div>
+    </div>
+  )
+}
+
 // Price by RV Type comparison
 function PriceByRVType({ data }: { data: AggregationItem[] }) {
   const chartData = [...data]
@@ -699,6 +801,33 @@ function AnalyticsContentV2({ summaryData, inventoryItems, loading: initialLoadi
           )}
         </Card>
       </Grid>
+
+      {/* Geographic Deep Dive Row - Region + City */}
+      {(displayData?.by_region?.length || displayData?.by_city?.length) && (
+        <Grid numItemsMd={2} className="gap-6">
+          {/* Region Distribution */}
+          <Card>
+            {displayData?.by_region && displayData.by_region.length > 0 ? (
+              <RegionDistribution data={displayData.by_region} />
+            ) : (
+              <div className="h-64 flex items-center justify-center">
+                <Text className="text-gray-400">No region data available</Text>
+              </div>
+            )}
+          </Card>
+
+          {/* Top Cities */}
+          <Card>
+            {displayData?.by_city && displayData.by_city.length > 0 ? (
+              <TopCitiesDistribution data={displayData.by_city} />
+            ) : (
+              <div className="h-64 flex items-center justify-center">
+                <Text className="text-gray-400">No city data available</Text>
+              </div>
+            )}
+          </Card>
+        </Grid>
+      )}
 
       {/* Price Analysis Row */}
       <Grid numItemsMd={2} className="gap-6">
