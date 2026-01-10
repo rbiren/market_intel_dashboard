@@ -3,6 +3,7 @@ import ReactECharts from 'echarts-for-react'
 import * as echarts from 'echarts'
 import { CrossFilterProvider, useCrossFilter } from '../../context/CrossFilterContext'
 import { formatChartPrice, formatChartNumber, formatCompactValue } from '../charts/chartUtils'
+import EChartsGeoMap from '../charts/EChartsGeoMap'
 
 const API_BASE = 'http://localhost:8000'
 
@@ -1482,9 +1483,23 @@ function AnalyticsContentV3({ summaryData, inventoryItems, loading: initialLoadi
         </GlassCard>
       </div>
 
+      {/* Interactive USA Map - Full Width Premium Geographic Visualization */}
+      <EChartsGeoMap
+        stateData={displayData.by_state}
+        regionData={displayData.by_region}
+        cityData={displayData.by_city}
+        onStateSelect={(state) => setFilter('state', state, 'geoMap')}
+        selectedState={filter.dimension === 'state' ? filter.value : null}
+        height={480}
+        showCities={true}
+        showRegions={true}
+        title="Geographic Market Intelligence"
+        subtitle="Interactive US map showing inventory distribution by state - click any state to filter"
+      />
+
       {/* Secondary Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <GlassCard title="Geographic Distribution" subtitle="Top states by inventory" badge="Click to Filter">
+        <GlassCard title="State Distribution" subtitle="Radial view of top states" badge="Click to Filter">
           <GeographicRoseChart
             data={displayData.by_state}
             onSelect={(state) => setFilter('state', state, 'rose')}

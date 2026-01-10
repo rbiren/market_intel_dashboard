@@ -17,6 +17,7 @@ import {
 } from 'chart.js'
 import { Doughnut, Bar, Line, Pie } from 'react-chartjs-2'
 import { CrossFilterProvider, useCrossFilter } from '../../context/CrossFilterContext'
+import USAMap from '../charts/USAMap'
 
 // Register Chart.js components
 ChartJS.register(
@@ -626,6 +627,21 @@ function AnalyticsContentH({ summaryData, inventoryItems, loading: initialLoadin
         <KPICard title="Average Price" value={formatPrice(displayData.avg_price)} subtitle="Per unit" icon="📊" color="steel" />
         <KPICard title="Manufacturers" value={String(displayData.by_manufacturer.length)} subtitle="Brands" icon="🏭" color="sage" />
       </div>
+
+      {/* Interactive USA Map */}
+      {displayData.by_state && displayData.by_state.length > 0 && (
+        <USAMap
+          data={displayData.by_state}
+          onStateSelect={(state) => setFilter('state', state, 'chartjsMap')}
+          selectedState={filter.dimension === 'state' ? filter.value : null}
+          height={380}
+          colorScheme="gold"
+          showLegend={true}
+          darkMode={false}
+          title="Market Distribution"
+          subtitle="Chart.js visualization with state filtering"
+        />
+      )}
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

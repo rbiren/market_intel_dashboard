@@ -6,6 +6,7 @@ import { TopBarChart } from '../charts/TopBarChart'
 import { PriceDistributionChart } from '../charts/PriceDistributionChart'
 import { StateTreemap } from '../charts/StateTreemap'
 import { ConditionComparison } from '../charts/ConditionComparison'
+import USAMap from '../charts/USAMap'
 
 const API_BASE = 'http://localhost:8000'
 
@@ -241,7 +242,7 @@ function KPICards({ data, loading }: KPICardsProps) {
 }
 
 function AnalyticsContent({ summaryData, loading: initialLoading }: AnalyticsTabProps) {
-  const { filter, clearFilter, isAnyFiltered } = useCrossFilter()
+  const { filter, setFilter, clearFilter, isAnyFiltered } = useCrossFilter()
   const [filteredSummary, setFilteredSummary] = useState<AggregatedSummary | null>(null)
   const [filteredInventory, setFilteredInventory] = useState<InventoryItem[]>([])
   const [filterLoading, setFilterLoading] = useState(false)
@@ -323,6 +324,21 @@ function AnalyticsContent({ summaryData, loading: initialLoading }: AnalyticsTab
 
       {/* KPI Summary Cards */}
       <KPICards data={displayData} loading={loading} />
+
+      {/* Interactive USA Map - Full Width Geographic Visualization */}
+      {displayData?.by_state && displayData.by_state.length > 0 && (
+        <USAMap
+          data={displayData.by_state}
+          onStateSelect={(state) => setFilter('state', state, 'usaMap')}
+          selectedState={filter.dimension === 'state' ? filter.value : null}
+          height={380}
+          colorScheme="sage"
+          showLegend={true}
+          darkMode={false}
+          title="Geographic Market Distribution"
+          subtitle="Interactive map - Click any state to filter dashboard by that location"
+        />
+      )}
 
       {/* Row 1: Market Share + Condition */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

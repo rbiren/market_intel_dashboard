@@ -14,6 +14,7 @@ import {
   ProgressBar,
   AreaChart,
 } from '@tremor/react'
+import USAMap from '../charts/USAMap'
 
 // Tremor color type
 type TremorColor = 'slate' | 'gray' | 'zinc' | 'neutral' | 'stone' | 'red' | 'orange' | 'amber' | 'yellow' | 'lime' | 'green' | 'emerald' | 'teal' | 'cyan' | 'sky' | 'blue' | 'indigo' | 'violet' | 'purple' | 'fuchsia' | 'pink' | 'rose'
@@ -625,7 +626,7 @@ function MarketSummaryRow({ data }: { data: AggregatedSummary }) {
 }
 
 function AnalyticsContentV2({ summaryData, inventoryItems, loading: initialLoading }: AnalyticsTabV2Props) {
-  const { filter, isAnyFiltered } = useCrossFilter()
+  const { filter, setFilter, isAnyFiltered } = useCrossFilter()
   const [filteredSummary, setFilteredSummary] = useState<AggregatedSummary | null>(null)
   const [filteredInventory, setFilteredInventory] = useState<InventoryItem[]>([])
   const [filterLoading, setFilterLoading] = useState(false)
@@ -753,6 +754,23 @@ function AnalyticsContentV2({ summaryData, inventoryItems, loading: initialLoadi
           color="amber"
         />
       </Grid>
+
+      {/* Interactive USA Map - Geographic Intelligence */}
+      {displayData?.by_state && displayData.by_state.length > 0 && (
+        <Card className="p-0 overflow-hidden">
+          <USAMap
+            data={displayData.by_state}
+            onStateSelect={(state) => setFilter('state', state, 'tremorMap')}
+            selectedState={filter.dimension === 'state' ? filter.value : null}
+            height={400}
+            colorScheme="steel"
+            showLegend={true}
+            darkMode={false}
+            title="Geographic Market Intelligence"
+            subtitle="Click any state to filter all dashboard data by that location"
+          />
+        </Card>
+      )}
 
       {/* Main Charts Row */}
       <Grid numItemsMd={2} className="gap-6">
