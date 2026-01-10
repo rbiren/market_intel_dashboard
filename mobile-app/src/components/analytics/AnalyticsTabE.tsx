@@ -7,6 +7,7 @@ import { ResponsiveBar } from '@nivo/bar'
 import { ResponsiveTreeMap } from '@nivo/treemap'
 import { ResponsiveRadar } from '@nivo/radar'
 import { CrossFilterProvider, useCrossFilter } from '../../context/CrossFilterContext'
+import USAMap from '../charts/USAMap'
 
 const API_BASE = 'http://localhost:8000'
 
@@ -488,6 +489,21 @@ function AnalyticsContentE({ summaryData, loading: initialLoading }: AnalyticsTa
         <KPICard title="Average Price" value={formatPrice(displayData.avg_price)} subtitle="Per unit" icon="📊" color="steel" />
         <KPICard title="Price Range" value={`${formatCompact(displayData.min_price)} - ${formatCompact(displayData.max_price)}`} subtitle="Min to Max" icon="📈" color="sage" />
       </div>
+
+      {/* Interactive USA Map - Geographic Distribution */}
+      {displayData.by_state && displayData.by_state.length > 0 && (
+        <USAMap
+          data={displayData.by_state}
+          onStateSelect={(state) => setFilter('state', state, 'nivoMap')}
+          selectedState={filter.dimension === 'state' ? filter.value : null}
+          height={380}
+          colorScheme="gradient"
+          showLegend={true}
+          darkMode={false}
+          title="Geographic Market Analysis"
+          subtitle="Interactive choropleth - Click to filter by state (Nivo-enhanced styling)"
+        />
+      )}
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react'
 import * as Plot from '@observablehq/plot'
 import { CrossFilterProvider, useCrossFilter } from '../../context/CrossFilterContext'
+import USAMap from '../charts/USAMap'
 
 const API_BASE = 'http://localhost:8000'
 
@@ -579,6 +580,21 @@ function AnalyticsContentI({ summaryData, inventoryItems, loading: initialLoadin
         <KPICard title="Average Price" value={formatPrice(displayData.avg_price)} subtitle="Per unit" icon="📊" color="steel" />
         <KPICard title="Dealer Groups" value={String(displayData.by_dealer_group.length)} subtitle="Partners" icon="🏢" color="sage" />
       </div>
+
+      {/* Interactive USA Map */}
+      {displayData.by_state && displayData.by_state.length > 0 && (
+        <USAMap
+          data={displayData.by_state}
+          onStateSelect={(state) => setFilter('state', state, 'observableMap')}
+          selectedState={filter.dimension === 'state' ? filter.value : null}
+          height={380}
+          colorScheme="sage"
+          showLegend={true}
+          darkMode={false}
+          title="Geographic Analysis"
+          subtitle="Observable Plot enhanced map"
+        />
+      )}
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -14,6 +14,7 @@ import {
   VictoryLegend,
 } from 'victory'
 import { CrossFilterProvider, useCrossFilter } from '../../context/CrossFilterContext'
+import USAMap from '../charts/USAMap'
 
 const API_BASE = 'http://localhost:8000'
 
@@ -550,6 +551,21 @@ function AnalyticsContentF({ summaryData, inventoryItems, loading: initialLoadin
         <KPICard title="Average Price" value={formatPrice(displayData.avg_price)} subtitle="Per unit" icon="📊" color="steel" />
         <KPICard title="RV Types" value={String(displayData.by_rv_type.length)} subtitle="Categories" icon="🚐" color="sage" />
       </div>
+
+      {/* Interactive USA Map */}
+      {displayData.by_state && displayData.by_state.length > 0 && (
+        <USAMap
+          data={displayData.by_state}
+          onStateSelect={(state) => setFilter('state', state, 'victoryMap')}
+          selectedState={filter.dimension === 'state' ? filter.value : null}
+          height={380}
+          colorScheme="sage"
+          showLegend={true}
+          darkMode={false}
+          title="Geographic Distribution"
+          subtitle="Victory.js enhanced choropleth"
+        />
+      )}
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

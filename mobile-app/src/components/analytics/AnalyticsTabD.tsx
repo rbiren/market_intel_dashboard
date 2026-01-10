@@ -12,6 +12,7 @@ import { useTooltip, TooltipWithBounds, defaultStyles } from '@visx/tooltip'
 import { ParentSize } from '@visx/responsive'
 import { LinearGradient } from '@visx/gradient'
 import { CrossFilterProvider, useCrossFilter } from '../../context/CrossFilterContext'
+import USAMap from '../charts/USAMap'
 
 const API_BASE = 'http://localhost:8000'
 
@@ -615,6 +616,21 @@ function AnalyticsContentD({ summaryData, loading: initialLoading }: AnalyticsTa
           color="sage"
         />
       </div>
+
+      {/* Interactive USA Map - Geographic Distribution */}
+      {displayData.by_state && displayData.by_state.length > 0 && (
+        <USAMap
+          data={displayData.by_state}
+          onStateSelect={(state) => setFilter('state', state, 'visxMap')}
+          selectedState={filter.dimension === 'state' ? filter.value : null}
+          height={380}
+          colorScheme="gold"
+          showLegend={true}
+          darkMode={false}
+          title="Geographic Distribution"
+          subtitle="Interactive map - Click any state to filter by location (Visx D3 enhanced)"
+        />
+      )}
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

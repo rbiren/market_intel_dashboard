@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Pie, Column, Bar, Area, Radar } from '@ant-design/charts'
 import { CrossFilterProvider, useCrossFilter } from '../../context/CrossFilterContext'
+import USAMap from '../charts/USAMap'
 
 const API_BASE = 'http://localhost:8000'
 
@@ -541,6 +542,21 @@ function AnalyticsContentJ({ summaryData, inventoryItems, loading: initialLoadin
         <KPICard title="Average Price" value={formatPrice(displayData.avg_price)} subtitle="Per unit" icon="📊" color="steel" />
         <KPICard title="States" value={String(displayData.by_state.length)} subtitle="Coverage" icon="🗺️" color="sage" />
       </div>
+
+      {/* Interactive USA Map */}
+      {displayData.by_state && displayData.by_state.length > 0 && (
+        <USAMap
+          data={displayData.by_state}
+          onStateSelect={(state) => setFilter('state', state, 'antvMap')}
+          selectedState={filter.dimension === 'state' ? filter.value : null}
+          height={380}
+          colorScheme="gradient"
+          showLegend={true}
+          darkMode={false}
+          title="Regional Market Analysis"
+          subtitle="AntV/G2 enterprise map view"
+        />
+      )}
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -3,6 +3,7 @@ import { CrossFilterProvider, useCrossFilter } from '../../context/CrossFilterCo
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { getRvTypeColor, CONDITION_COLORS, SEQUENTIAL_COLORS } from '../charts/chartColors'
 import type { AggregationItem, AggregatedSummary } from '../../hooks/useOneLakeInventory'
+import MobileGeoMap from '../charts/MobileGeoMap'
 
 const API_BASE = 'http://localhost:8000'
 
@@ -555,6 +556,18 @@ function AnalyticsMobileContent({ summaryData, loading: initialLoading }: Analyt
         {displayData && (
           <div className="mt-4">
             <MobilePriceStats data={displayData} />
+          </div>
+        )}
+
+        {/* Interactive Geographic Map */}
+        {displayData?.by_state && displayData.by_state.length > 0 && (
+          <div className="mt-4">
+            <MobileGeoMap
+              stateData={displayData.by_state}
+              regionData={displayData.by_region}
+              onStateSelect={(state) => setFilter('state', state, 'mobileMap')}
+              selectedState={filter.dimension === 'state' ? activeFilterValue : null}
+            />
           </div>
         )}
       </div>
