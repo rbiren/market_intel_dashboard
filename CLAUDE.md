@@ -12,6 +12,10 @@ cd mobile-app && npm run dev -- --port 5175
 
 **Open http://localhost:5175** (backend startup takes ~20-25 min to build all caches including RV type filters)
 
+**Routes:**
+- `/` or `/sales/*` - Sales Platform (main entry point)
+- `/analytics` - Legacy Analytics Dashboard (A/B/C/M versions)
+
 ---
 
 ## Architecture (Updated January 2025)
@@ -61,18 +65,43 @@ Request Time (instant)
 
 ## Key Files
 
+### Backend
 | File | Purpose |
 |------|---------|
 | `api/main.py` | **THE** backend - all caching logic, GraphQL queries, endpoints |
-| `mobile-app/src/pages/Dashboard.tsx` | Main dashboard UI with tabs + A/B/C/M version toggle |
+
+### Sales Platform (Main App)
+| File | Purpose |
+|------|---------|
+| `mobile-app/src/App.tsx` | Router config - Sales Platform at `/`, Analytics at `/analytics` |
+| `mobile-app/src/pages/SalesPlatform/index.tsx` | Sales Platform shell with sidebar, header, mobile nav |
+| `mobile-app/src/pages/SalesPlatform/SalesDashboard.tsx` | Territory overview with KPIs and quick actions |
+| `mobile-app/src/pages/SalesPlatform/DealerDirectory.tsx` | Dealer list with search and filters |
+| `mobile-app/src/pages/SalesPlatform/DealerDetail.tsx` | Individual dealer details page |
+| `mobile-app/src/pages/SalesPlatform/TerritoryMap.tsx` | Interactive territory map |
+| `mobile-app/src/pages/SalesPlatform/CompetitiveIntel.tsx` | Competitive landscape analysis |
+| `mobile-app/src/pages/SalesPlatform/ProductCatalog.tsx` | Product catalog for presentations |
+| `mobile-app/src/pages/SalesPlatform/MeetingPrep.tsx` | Meeting preparation tool |
+| `mobile-app/src/context/SalesContext.tsx` | Sales Platform state (theme, view, filters) |
+| `mobile-app/src/hooks/useSalesData.ts` | Sales Platform data hooks |
+| `mobile-app/src/components/sales/` | Sales components (Sidebar, Header, FilterPanel, etc.) |
+
+### Analytics Dashboard (Legacy)
+| File | Purpose |
+|------|---------|
+| `mobile-app/src/pages/Dashboard.tsx` | Analytics dashboard UI with tabs + A/B/C/M version toggle |
 | `mobile-app/src/components/analytics/AnalyticsTab.tsx` | Version A: Recharts (original) |
 | `mobile-app/src/components/analytics/AnalyticsTabV2.tsx` | Version B: Tremor library |
 | `mobile-app/src/components/analytics/AnalyticsTabV3.tsx` | Version C: ECharts Premium (Thor Industries branded) |
 | `mobile-app/src/components/analytics/AnalyticsTabMobile.tsx` | Version M: Mobile-optimized (touch-friendly, vertical layout) |
-| `mobile-app/src/styles/thorTheme.ts` | Thor Industries brand style guide constants |
 | `mobile-app/src/context/CrossFilterContext.tsx` | Cross-filter state management |
 | `mobile-app/src/components/charts/` | Chart components (MarketShareDonut, TopBarChart, etc.) |
 | `mobile-app/src/hooks/useOneLakeInventory.ts` | React hooks for API calls |
+
+### Shared
+| File | Purpose |
+|------|---------|
+| `mobile-app/src/styles/thorTheme.ts` | Thor Industries brand style guide constants |
 
 **Documentation:**
 - `PROPOSAL-GraphQL-Architecture.md` - Future architecture improvements proposal
@@ -236,12 +265,13 @@ USAMap.tsx               - react-simple-maps choropleth (Versions A, B, D-J)
 MobileGeoMap.tsx         - Mobile geo map with region aggregation
 ```
 
-### Frontend Dependencies for Charts
+### Frontend Dependencies
 ```json
 {
-  "recharts": "^2.x",           // Version A
+  "react-router-dom": "^7.x",   // Routing between Sales Platform and Analytics
+  "recharts": "^2.x",           // Version A charts
   "@tremor/react": "^3.x",      // Version B (requires --legacy-peer-deps for React 19)
-  "echarts": "^5.x",            // Version C
+  "echarts": "^5.x",            // Version C charts
   "echarts-for-react": "^3.x"   // Version C React wrapper
 }
 ```
@@ -426,6 +456,13 @@ const handleStateClick = (geo: { properties: { name: string } }) => {
 **Problem**: API only returned 10 states in `by_state` aggregation, causing maps to show incomplete data.
 **Solution**: Changed state limit from 10 to 65 in `api/main.py` (5 locations in aggregation queries).
 
+### 19. Missing react-router-dom After Git Pull
+**Problem**: After pulling Sales Platform code from main, Vite failed with "Failed to resolve import react-router-dom".
+**Solution**: Install the missing dependency with legacy peer deps:
+```bash
+npm install react-router-dom --legacy-peer-deps
+```
+
 ---
 
 ## Code Quality
@@ -467,6 +504,16 @@ Edit `api/main.py` - look for:
 3. Update `get_filter_options()` if new dimension needed
 
 ### To change frontend:
+
+**Sales Platform (main app):**
+- Router: `mobile-app/src/App.tsx`
+- Platform shell: `mobile-app/src/pages/SalesPlatform/index.tsx`
+- Pages: `mobile-app/src/pages/SalesPlatform/*.tsx`
+- Components: `mobile-app/src/components/sales/`
+- Context: `mobile-app/src/context/SalesContext.tsx`
+- Data hooks: `mobile-app/src/hooks/useSalesData.ts`
+
+**Analytics Dashboard (legacy):**
 - Dashboard: `mobile-app/src/pages/Dashboard.tsx`
 - Analytics Version A (Recharts): `mobile-app/src/components/analytics/AnalyticsTab.tsx`
 - Analytics Version B (Tremor): `mobile-app/src/components/analytics/AnalyticsTabV2.tsx`
