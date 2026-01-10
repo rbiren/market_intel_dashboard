@@ -22,32 +22,36 @@ All data is loaded into RAM at server startup for **instant responses**:
 
 | Cache | Records | Purpose |
 |-------|---------|---------|
-| `_products_cache` | 100,000 | Product details (rv_type, manufacturer, model, year) |
-| `_dealers_cache` | 10,000 | Dealer details (dealer_group, state, dealership) |
+| `_products_cache` | ~30,000 | Product model details (rv_type, manufacturer, model) keyed by `dim_product_model_skey` |
+| `_floorplan_cache` | ~100,000 | Floorplan data keyed by `dim_product_skey` |
+| `_dealers_cache` | 10,000 | Dealer details (dealer_group, state, dealership, region, city, county) |
 | `_inventory_cache` | 100,000 | Full inventory with joined product/dealer data |
-| `_aggregations_cache` | Pre-computed | 185,160 units aggregated by rv_type, dealer, state, condition |
+| `_aggregations_cache` | Pre-computed | 186,610 units aggregated by rv_type, dealer, state, region, city, condition |
 | `_filtered_aggregations_cache` | Pre-computed | Condition filters (NEW/USED) + RV type filters (8 types) |
 
 ### Why This Approach?
 
 1. **GraphQL has no JOINs** - Fabric GraphQL exposes tables separately; relationships must be configured manually in Fabric portal (not done)
 2. **100k record limit** - Fabric GraphQL `first` param maxes at 100,000
-3. **groupBy works on full data** - Native `groupBy` aggregations scan ALL records (185,160), not just fetched ones
+3. **groupBy works on full data** - Native `groupBy` aggregations scan ALL records (186,610), not just fetched ones
 4. **Azure credentials are flaky** - Live API calls intermittently fail; caching eliminates this
 
 ### Data Flow
 
 ```
 Server Startup (~20-25 min)
-  ├─ load_cache()                      → Fetch 100k products + 10k dealers (~1 min)
-  ├─ load_inventory_cache()            → Fetch 100k inventory + join with dimensions (~6 min)
-  ├─ build_aggregations_cache()        → Run groupBy queries for full 185k aggregations (~4 min)
+  ├─ load_cache()                      → Fetch product models + floorplans + dealers (~1 min)
+  │    ├─ dim_product_models (30k) → _products_cache (rv_type, manufacturer, model)
+  │    ├─ dim_products (100k)      → _floorplan_cache (floorplan)
+  │    └─ dim_dealerships (10k)    → _dealers_cache (dealer_group, state, region, city, county)
+  ├─ load_inventory_cache()            → Fetch 100k inventory + manual joins (~6 min)
+  ├─ build_aggregations_cache()        → Run groupBy queries for full 186k aggregations (~4 min)
   └─ build_filtered_aggregations_cache() → Pre-compute filters:
        ├─ Condition: NEW, USED (~5 min)
        └─ RV Types: 8 types (~8 min)
 
 Request Time (instant)
-  ├─ /filters        → Read from _products_cache + _dealers_cache
+  ├─ /filters        → Read from _products_cache + _dealers_cache (includes regions, cities)
   ├─ /dealers        → Read from _dealers_cache
   ├─ /inventory      → Filter _inventory_cache in memory
   └─ /aggregated     → Return _aggregations_cache or _filtered_aggregations_cache
@@ -241,12 +245,12 @@ PriceDistributionChart.tsx - Price histogram
 
 ---
 
-## Known Issue: 35K vs 19K Discrepancy
+## Known Issue: Full Dataset vs Cached Subset Discrepancy
 
-**Problem:** Pie chart shows FIFTH WHEEL = 35,414 units, but clicking it shows ~19,447 units.
+**Problem:** Pie chart shows FIFTH WHEEL = ~36K units, but clicking it shows ~19K units.
 
 **Cause:**
-- Pie chart totals come from `groupBy` on full 185K dataset
+- Pie chart totals come from `groupBy` on full 186K dataset
 - Filtered data comes from pre-computed cache based on 100K cached inventory
 
 **Workaround:** The numbers in filtered view are accurate for the cached subset. For fully consistent numbers, see `PROPOSAL-GraphQL-Architecture.md` for recommended solutions (Materialized Views).
@@ -258,10 +262,10 @@ PriceDistributionChart.tsx - Price histogram
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/health` | GET | Health check |
-| `/filters` | GET | Filter options (rv_types, states, conditions, dealer_groups) |
+| `/filters` | GET | Filter options (rv_types, states, regions, cities, conditions, dealer_groups) |
 | `/dealers` | GET | List of dealership names |
 | `/inventory` | GET | Inventory items with filters |
-| `/inventory/aggregated` | GET | Aggregated stats (KPIs, charts) |
+| `/inventory/aggregated` | GET | Aggregated stats (KPIs, charts) with by_region, by_city, by_county |
 | `/inventory/totals` | GET | Quick totals via native groupBy |
 
 **Common Params**: `rv_class`, `dealer_group`, `manufacturer`, `condition`, `state`, `min_price`, `max_price`, `limit`
@@ -275,9 +279,16 @@ Workspace ID:   9c727ce4-5f7e-4008-b31e-f3e3bd8e0adc
 GraphQL API ID: 5c282d47-9d39-475c-ba43-5145fdc021b8
 Azure Client:   7c59a81d-6b68-47a5-b491-7eed93fe6b13
 Azure Tenant:   5e57ec01-060b-4ff9-899f-972a9ca7499c
+GraphQL URL:    https://{workspace_id}.z9c.graphql.fabric.microsoft.com/v1/workspaces/{workspace_id}/graphqlapis/{api_id}/graphql
 ```
 
-**Tables**: `dim_product`, `dim_dealership`, `fact_inventory_current` (gold layer)
+**Tables** (Lakehouse → GraphQL query names):
+| Lakehouse Table | GraphQL Query | Key Field | Fields |
+|-----------------|---------------|-----------|--------|
+| `dim_product_model` | `dim_product_models` | `dim_product_model_skey` | rv_type, manufacturer, model |
+| `dim_product` | `dim_products` | `dim_product_skey` | floorplan |
+| `dim_dealership` | `dim_dealerships` | `dim_dealership_skey` | dealer_group, state, dealership, region, city, county |
+| `fact_inventory_current` | `fact_inventory_currents` | - | stock_number, price, condition, days_on_lot, dim_product_model_skey, dim_product_skey, dim_dealership_skey |
 
 ---
 
@@ -366,6 +377,18 @@ interface EChartsTooltipParams {
 }
 ```
 
+### 15. Schema Change: dim_product Split into Two Tables (January 2025)
+**Problem**: Original `dim_product` table was split into `dim_product_model` (rv_type, manufacturer, model) and `dim_product` (floorplan). Old code using `dim_product_skey` for product lookups failed.
+**Solution**:
+- Use `dim_product_model_skey` for rv_type/manufacturer/model lookups
+- Use `dim_product_skey` for floorplan lookups
+- Inventory table (`fact_inventory_current`) has BOTH foreign keys
+- Load two separate caches: `_products_cache` and `_floorplan_cache`
+
+### 16. GraphQL Table Naming Convention
+**Problem**: Lakehouse tables are singular (`dim_product`), but GraphQL queries are plural (`dim_products`). Easy to get confused.
+**Solution**: Always use plural form in GraphQL queries. The API automatically pluralizes table names.
+
 ---
 
 ## Code Quality
@@ -390,8 +413,11 @@ cd mobile-app && npx tsc --noEmit
 
 ### To modify caching logic:
 Edit `api/main.py` - look for:
-- `load_cache()` - dimension table loading
-- `load_inventory_cache()` - inventory + joins
+- `load_cache()` - dimension table loading (products, floorplans, dealers)
+  - `_products_cache` keyed by `dim_product_model_skey` (rv_type, manufacturer, model)
+  - `_floorplan_cache` keyed by `dim_product_skey` (floorplan)
+  - `_dealers_cache` keyed by `dim_dealership_skey` (dealer_group, state, region, city, county)
+- `load_inventory_cache()` - inventory + manual joins with all three dimension caches
 - `build_aggregations_cache()` - groupBy aggregations (uses on-demand dimension fetching)
 - `build_filtered_aggregations_cache()` - pre-computed filters (condition + RV types)
 - `fetch_dimension_data_for_skeys()` - batch fetch dimension data for specific skeys
@@ -434,13 +460,16 @@ cd api && python -m uvicorn main:app --port 8000
 
 ## Data Reference
 
-- **185,160** total inventory units (from groupBy, reconciled in sub-tables)
-- **131,546** NEW units, **53,614** USED units (pre-computed, instant)
+- **186,610** total inventory units (from groupBy, reconciled in sub-tables)
+- **132,952** NEW units, **53,658** USED units (pre-computed, instant)
 - **100,000** cached inventory items (GraphQL limit)
-- **RV Types**: TRAVEL TRAILER (120k), FIFTH WHEEL (35k), CLASS C (14k), CLASS A (7k), CLASS B (4k), OTHER, CAMPING TRAILER, PARK MODEL
+- **RV Types**: TRAVEL TRAILER (121k), FIFTH WHEEL (36k), CLASS C (14k), CLASS A (7k), CLASS B (4.5k), OTHER, CAMPING TRAILER, PARK MODEL
 - **Conditions**: NEW, USED
-- **States**: Full names ("Arizona" not "AZ")
-- **62** states/provinces, **575** dealer groups
+- **States**: Full names ("Arizona" not "AZ") - **65** states/provinces
+- **Regions**: 7 regions (SOUTHEAST, NORTHEAST, SOUTHWEST, CANADA, NORTHWEST, ONLINE)
+- **Cities**: **4,510** unique cities
+- **Counties**: Available in aggregations
+- **576** dealer groups
 
 ---
 

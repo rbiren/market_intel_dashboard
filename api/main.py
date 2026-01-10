@@ -18,7 +18,7 @@ from pydantic import BaseModel
 # Configuration
 WORKSPACE_ID = "9c727ce4-5f7e-4008-b31e-f3e3bd8e0adc"
 GRAPHQL_ID = "5c282d47-9d39-475c-ba43-5145fdc021b8"
-GRAPHQL_ENDPOINT = f"https://api.fabric.microsoft.com/v1/workspaces/{WORKSPACE_ID}/graphqlApis/{GRAPHQL_ID}/graphql"
+GRAPHQL_ENDPOINT = f"https://{WORKSPACE_ID.replace('-', '')}.z9c.graphql.fabric.microsoft.com/v1/workspaces/{WORKSPACE_ID}/graphqlapis/{GRAPHQL_ID}/graphql"
 
 
 app = FastAPI(
@@ -45,7 +45,8 @@ class FabricGraphQLClient:
     _token_expires = None
 
     # Caches for dimension tables
-    _products_cache = None  # {dim_product_skey: {rv_type, manufacturer, model}}
+    _products_cache = None  # {dim_product_model_skey: {rv_type, manufacturer, model}}
+    _floorplan_cache = None  # {dim_product_skey: {floorplan}}
     _dealers_cache = None   # {dim_dealership_skey: {dealer_group, state, dealership}}
     _cache_loaded = False
 
@@ -68,9 +69,11 @@ class FabricGraphQLClient:
         """Get or refresh the access token."""
         now = datetime.now().timestamp()
         if self._token is None or (self._token_expires and now > self._token_expires - 300):
+            print("DEBUG: Getting new token...")
             token_response = self.credential.get_token("https://analysis.windows.net/powerbi/api/.default")
             self._token = token_response.token
             self._token_expires = token_response.expires_on
+            print(f"DEBUG: Token obtained, expires at {self._token_expires}")
         return self._token
 
     def execute_query(self, query: str, variables: dict = None) -> dict:
@@ -84,13 +87,16 @@ class FabricGraphQLClient:
         if variables:
             payload["variables"] = variables
 
+        print(f"DEBUG: Calling endpoint: {GRAPHQL_ENDPOINT}")
         response = requests.post(GRAPHQL_ENDPOINT, headers=headers, json=payload)
+        print(f"DEBUG: Response status: {response.status_code}")
 
         if response.status_code != 200:
             raise Exception(f"GraphQL request failed: {response.status_code} - {response.text}")
 
         result = response.json()
         if "errors" in result:
+            print(f"DEBUG: Full response: {result}")
             raise Exception(f"GraphQL errors: {result['errors']}")
 
         return result.get("data", {})
@@ -107,9 +113,9 @@ class FabricGraphQLClient:
         self._products_cache = {}
         query = """
         {
-            dim_products(first: 100000) {
+            dim_product_models(first: 100000) {
                 items {
-                    dim_product_skey
+                    dim_product_model_skey
                     rv_type
                     manufacturer
                     model
@@ -118,14 +124,34 @@ class FabricGraphQLClient:
         }
         """
         result = self.execute_query(query)
-        items = result.get("dim_products", {}).get("items", [])
+        items = result.get("dim_product_models", {}).get("items", [])
         for p in items:
-            self._products_cache[p["dim_product_skey"]] = {
+            self._products_cache[p["dim_product_model_skey"]] = {
                 "rv_type": p.get("rv_type"),
                 "manufacturer": p.get("manufacturer"),
                 "model": p.get("model")
             }
-        print(f"  Loaded {len(self._products_cache)} products")
+        print(f"  Loaded {len(self._products_cache)} product models")
+
+        # Load all floorplans from dim_products (separate table with dim_product_skey)
+        self._floorplan_cache = {}
+        query = """
+        {
+            dim_products(first: 100000) {
+                items {
+                    dim_product_skey
+                    floorplan
+                }
+            }
+        }
+        """
+        result = self.execute_query(query)
+        items = result.get("dim_products", {}).get("items", [])
+        for p in items:
+            self._floorplan_cache[p["dim_product_skey"]] = {
+                "floorplan": p.get("floorplan")
+            }
+        print(f"  Loaded {len(self._floorplan_cache)} floorplans")
 
         # Load all dealers (up to 10k)
         self._dealers_cache = {}
@@ -137,6 +163,9 @@ class FabricGraphQLClient:
                     dealer_group
                     state
                     dealership
+                    region
+                    city
+                    county
                 }
             }
         }
@@ -147,13 +176,16 @@ class FabricGraphQLClient:
             self._dealers_cache[d["dim_dealership_skey"]] = {
                 "dealer_group": d.get("dealer_group"),
                 "state": d.get("state"),
-                "dealership": d.get("dealership")
+                "dealership": d.get("dealership"),
+                "region": d.get("region"),
+                "city": d.get("city"),
+                "county": d.get("county")
             }
         print(f"  Loaded {len(self._dealers_cache)} dealers")
 
         self._cache_loaded = True
         elapsed = (datetime.now() - start).total_seconds()
-        print(f"Cache loaded: {len(self._products_cache)} products, {len(self._dealers_cache)} dealers in {elapsed:.1f}s")
+        print(f"Cache loaded: {len(self._products_cache)} product models, {len(self._floorplan_cache)} floorplans, {len(self._dealers_cache)} dealers in {elapsed:.1f}s")
 
     def get_product(self, skey):
         """Get product from cache."""
@@ -220,7 +252,7 @@ class FabricGraphQLClient:
         Args:
             fields: List of fact_inventory_currents fields to fetch
             filter_str: GraphQL filter string (e.g. ', filter: { condition: { eq: "NEW" } }')
-            include_nested: If True, includes nested dim_product and dim_dealership via relationships
+            include_nested: If True, includes nested dim_product_models and dim_dealerships via relationships
         """
         fields_str = "\n                    ".join(fields)
 
@@ -229,14 +261,14 @@ class FabricGraphQLClient:
         nested_str = ""
         if include_nested:
             nested_str = """
-                    dim_product {
+                    dim_product_models {
                         rv_type
                         manufacturer
                         model
                         model_year
                         floorplan
                     }
-                    dim_dealership {
+                    dim_dealerships {
                         dealer_group
                         state
                         dealership
@@ -310,12 +342,18 @@ class FabricGraphQLClient:
             if product.get("manufacturer"):
                 manufacturers.add(product["manufacturer"])
 
-        # Get states and dealer groups from cached dealers
+        # Get states, regions, cities and dealer groups from cached dealers
         states = set()
+        regions = set()
+        cities = set()
         dealer_groups = set()
         for dealer in self._dealers_cache.values():
             if dealer.get("state"):
                 states.add(dealer["state"])
+            if dealer.get("region"):
+                regions.add(dealer["region"])
+            if dealer.get("city"):
+                cities.add(dealer["city"])
             if dealer.get("dealer_group"):
                 dealer_groups.add(dealer["dealer_group"])
 
@@ -325,6 +363,8 @@ class FabricGraphQLClient:
         return {
             "rv_types": sorted(list(rv_types)),
             "states": sorted(list(states)),
+            "regions": sorted(list(regions)),
+            "cities": sorted(list(cities)),
             "conditions": conditions,
             "dealer_groups": sorted(list(dealer_groups)),
             "manufacturers": sorted(list(manufacturers))
@@ -344,7 +384,7 @@ class FabricGraphQLClient:
     ) -> list[dict]:
         """Get current inventory with nested dimension data via GraphQL relationships.
 
-        Uses a single query with nested dim_product/dim_dealership - no batch fetching needed!
+        Uses a single query with nested dim_product_models/dim_dealerships - no batch fetching needed!
         """
 
         # Build filter conditions for fact_inventory_currents
@@ -374,14 +414,14 @@ class FabricGraphQLClient:
                     condition
                     price
                     days_on_lot
-                    dim_product {{
+                    dim_product_models {{
                         rv_type
                         manufacturer
                         model
                         model_year
                         floorplan
                     }}
-                    dim_dealership {{
+                    dim_dealerships {{
                         dealership
                         dealer_group
                         city
@@ -401,8 +441,8 @@ class FabricGraphQLClient:
         # Apply dimension filters and format results
         results = []
         for item in inventory_items:
-            product = item.get("dim_product") or {}
-            dealership = item.get("dim_dealership") or {}
+            product = item.get("dim_product_models") or {}
+            dealership = item.get("dim_dealerships") or {}
 
             dealer_name = dealership.get("dealership")
             product_rv_type = product.get("rv_type")
@@ -459,7 +499,7 @@ class FabricGraphQLClient:
                 items {
                     price
                     condition
-                    dim_product_skey
+                    dim_product_model_skey
                     dim_dealership_skey
                 }
             }
@@ -482,7 +522,7 @@ class FabricGraphQLClient:
             }
 
         # Get product and dealer info
-        product_keys = list(set(item["dim_product_skey"] for item in items if item.get("dim_product_skey")))
+        product_keys = list(set(item["dim_product_model_skey"] for item in items if item.get("dim_product_model_skey")))
         dealer_keys = list(set(item["dim_dealership_skey"] for item in items if item.get("dim_dealership_skey")))
 
         # Batch queries to avoid GraphQL IN operator limit of 100
@@ -492,9 +532,9 @@ class FabricGraphQLClient:
             batch = product_keys[i:i + BATCH_SIZE]
             product_query = f"""
             {{
-                dim_products(first: 1000, filter: {{ dim_product_skey: {{ in: [{', '.join(str(k) for k in batch)}] }} }}) {{
+                dim_product_models(first: 1000, filter: {{ dim_product_model_skey: {{ in: [{', '.join(str(k) for k in batch)}] }} }}) {{
                     items {{
-                        dim_product_skey
+                        dim_product_model_skey
                         manufacturer
                         model
                         rv_type
@@ -503,8 +543,8 @@ class FabricGraphQLClient:
             }}
             """
             product_result = self.execute_query(product_query)
-            for p in product_result.get("dim_products", {}).get("items", []):
-                products[p["dim_product_skey"]] = p
+            for p in product_result.get("dim_product_models", {}).get("items", []):
+                products[p["dim_product_model_skey"]] = p
 
         dealerships = {}
         for i in range(0, len(dealer_keys), BATCH_SIZE):
@@ -540,7 +580,7 @@ class FabricGraphQLClient:
         by_condition = {}
 
         for item in filtered_items:
-            product = products.get(item.get("dim_product_skey"), {})
+            product = products.get(item.get("dim_product_model_skey"), {})
             dealership = dealerships.get(item.get("dim_dealership_skey"), {})
 
             if product.get("manufacturer"):
@@ -596,7 +636,7 @@ class FabricGraphQLClient:
         # Fetch ALL inventory records using pagination
         print("Fetching all inventory for aggregation...")
         all_items = self.fetch_all_inventory(
-            fields=["stock_number", "price", "condition", "days_on_lot", "dim_product_skey", "dim_dealership_skey"],
+            fields=["stock_number", "price", "condition", "days_on_lot", "dim_product_model_skey", "dim_dealership_skey"],
             filter_str=filter_str
         )
 
@@ -613,7 +653,7 @@ class FabricGraphQLClient:
             }
 
         # Get unique keys
-        product_keys = list(set(item["dim_product_skey"] for item in all_items if item.get("dim_product_skey")))
+        product_keys = list(set(item["dim_product_model_skey"] for item in all_items if item.get("dim_product_model_skey")))
         dealer_keys = list(set(item["dim_dealership_skey"] for item in all_items if item.get("dim_dealership_skey")))
 
         # Batch fetch products
@@ -623,9 +663,9 @@ class FabricGraphQLClient:
             batch = product_keys[i:i + BATCH_SIZE]
             product_query = f"""
             {{
-                dim_products(first: 1000, filter: {{ dim_product_skey: {{ in: [{', '.join(str(k) for k in batch)}] }} }}) {{
+                dim_product_models(first: 1000, filter: {{ dim_product_model_skey: {{ in: [{', '.join(str(k) for k in batch)}] }} }}) {{
                     items {{
-                        dim_product_skey
+                        dim_product_model_skey
                         manufacturer
                         model
                         rv_type
@@ -634,8 +674,8 @@ class FabricGraphQLClient:
             }}
             """
             product_result = self.execute_query(product_query)
-            for p in product_result.get("dim_products", {}).get("items", []):
-                products[p["dim_product_skey"]] = p
+            for p in product_result.get("dim_product_models", {}).get("items", []):
+                products[p["dim_product_model_skey"]] = p
 
         # Batch fetch dealerships
         dealerships = {}
@@ -669,7 +709,7 @@ class FabricGraphQLClient:
         filtered_count = 0
 
         for item in all_items:
-            product = products.get(item.get("dim_product_skey"), {})
+            product = products.get(item.get("dim_product_model_skey"), {})
             dealership = dealerships.get(item.get("dim_dealership_skey"), {})
 
             item_rv_type = product.get("rv_type")
@@ -817,8 +857,8 @@ class FabricGraphQLClient:
         product_query = """
         {
             fact_inventory_currents(first: 100000) {
-                groupBy(fields: [dim_product_skey]) {
-                    fields { dim_product_skey }
+                groupBy(fields: [dim_product_model_skey]) {
+                    fields { dim_product_model_skey }
                     aggregations {
                         count(field: price)
                         sum(field: price)
@@ -833,22 +873,22 @@ class FabricGraphQLClient:
 
         # Collect ALL product skeys from inventory groupBy (these represent ALL 184k units)
         inventory_product_skeys = [
-            g.get("fields", {}).get("dim_product_skey")
+            g.get("fields", {}).get("dim_product_model_skey")
             for g in prod_groups
-            if g.get("fields", {}).get("dim_product_skey")
+            if g.get("fields", {}).get("dim_product_model_skey")
         ]
         product_skey_to_aggs = {
-            g.get("fields", {}).get("dim_product_skey"): g.get("aggregations", {})
+            g.get("fields", {}).get("dim_product_model_skey"): g.get("aggregations", {})
             for g in prod_groups
-            if g.get("fields", {}).get("dim_product_skey")
+            if g.get("fields", {}).get("dim_product_model_skey")
         }
 
         # Fetch dimension data specifically for skeys found in inventory (not from pre-loaded cache)
         # This ensures we get data for ALL inventory products, even if dimension cache was limited
         products_for_inventory = self.fetch_dimension_data_for_skeys(
-            "dim_products", "dim_product_skey",
+            "dim_product_models", "dim_product_model_skey",
             inventory_product_skeys,
-            ["dim_product_skey", "rv_type", "manufacturer"]
+            ["dim_product_model_skey", "rv_type", "manufacturer"]
         )
 
         by_rv_type = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
@@ -884,7 +924,7 @@ class FabricGraphQLClient:
                     by_manufacturer[mfr]["avg_prices"].append((avg_p, count))
 
         if missing_product_count > 0:
-            print(f"  WARNING: {missing_product_count} products not found in dim_products ({missing_product_inventory} inventory units)")
+            print(f"  WARNING: {missing_product_count} products not found in dim_product_models ({missing_product_inventory} inventory units)")
         print(f"  Product aggregations: {len(prod_groups)} product groups -> {len(by_rv_type)} rv_types, {len(by_manufacturer)} manufacturers")
 
         # 3. Get dealer-level aggregations (for dealer_group, state)
@@ -1101,8 +1141,8 @@ class FabricGraphQLClient:
             product_query = f"""
             {{
                 fact_inventory_currents(first: 100000{filter_str}) {{
-                    groupBy(fields: [dim_product_skey]) {{
-                        fields {{ dim_product_skey }}
+                    groupBy(fields: [dim_product_model_skey]) {{
+                        fields {{ dim_product_model_skey }}
                         aggregations {{
                             count(field: price)
                             sum(field: price)
@@ -1117,20 +1157,20 @@ class FabricGraphQLClient:
 
             # Collect product skeys and fetch dimension data
             inventory_product_skeys = [
-                g.get("fields", {}).get("dim_product_skey")
+                g.get("fields", {}).get("dim_product_model_skey")
                 for g in prod_groups
-                if g.get("fields", {}).get("dim_product_skey")
+                if g.get("fields", {}).get("dim_product_model_skey")
             ]
             product_skey_to_aggs = {
-                g.get("fields", {}).get("dim_product_skey"): g.get("aggregations", {})
+                g.get("fields", {}).get("dim_product_model_skey"): g.get("aggregations", {})
                 for g in prod_groups
-                if g.get("fields", {}).get("dim_product_skey")
+                if g.get("fields", {}).get("dim_product_model_skey")
             }
 
             products_for_inventory = self.fetch_dimension_data_for_skeys(
-                "dim_products", "dim_product_skey",
+                "dim_product_models", "dim_product_model_skey",
                 inventory_product_skeys,
-                ["dim_product_skey", "rv_type", "manufacturer"]
+                ["dim_product_model_skey", "rv_type", "manufacturer"]
             )
 
             by_rv_type = defaultdict(lambda: {"count": 0, "total_value": 0, "avg_prices": []})
@@ -1324,7 +1364,7 @@ class FabricGraphQLClient:
         for i in range(0, len(product_skeys), BATCH_SIZE):
             batch = product_skeys[i:i + BATCH_SIZE]
             batch_str = ', '.join(str(k) for k in batch)
-            filter_str = f', filter: {{ dim_product_skey: {{ in: [{batch_str}] }} }}'
+            filter_str = f', filter: {{ dim_product_model_skey: {{ in: [{batch_str}] }} }}'
 
             # Get condition aggregations for this batch
             cond_query = f"""
@@ -1430,8 +1470,8 @@ class FabricGraphQLClient:
 
         # Get manufacturers from the product skeys we already have
         products_data = self.fetch_dimension_data_for_skeys(
-            "dim_products", "dim_product_skey", product_skeys,
-            ["dim_product_skey", "manufacturer"]
+            "dim_product_models", "dim_product_model_skey", product_skeys,
+            ["dim_product_model_skey", "manufacturer"]
         )
 
         # We need to get manufacturer counts from inventory
@@ -1439,13 +1479,13 @@ class FabricGraphQLClient:
         for i in range(0, len(product_skeys), BATCH_SIZE):
             batch = product_skeys[i:i + BATCH_SIZE]
             batch_str = ', '.join(str(k) for k in batch)
-            filter_str = f', filter: {{ dim_product_skey: {{ in: [{batch_str}] }} }}'
+            filter_str = f', filter: {{ dim_product_model_skey: {{ in: [{batch_str}] }} }}'
 
             prod_query = f"""
             {{
                 fact_inventory_currents(first: 100000{filter_str}) {{
-                    groupBy(fields: [dim_product_skey]) {{
-                        fields {{ dim_product_skey }}
+                    groupBy(fields: [dim_product_model_skey]) {{
+                        fields {{ dim_product_model_skey }}
                         aggregations {{
                             count(field: price)
                             sum(field: price)
@@ -1457,7 +1497,7 @@ class FabricGraphQLClient:
             """
             prod_result = self.execute_query(prod_query)
             for g in prod_result.get("fact_inventory_currents", {}).get("groupBy", []):
-                pkey = g.get("fields", {}).get("dim_product_skey")
+                pkey = g.get("fields", {}).get("dim_product_model_skey")
                 aggs = g.get("aggregations", {})
                 product = products_data.get(pkey, {})
                 count = aggs.get("count") or 0
@@ -1527,28 +1567,30 @@ class FabricGraphQLClient:
     def load_inventory_cache(self):
         """Load all inventory with joined dimension data for fast filtered queries AND display.
 
-        Uses GraphQL relationships for nested dim_product/dim_dealership data in a single query.
+        Uses manual joins from dimension caches since Fabric relationships aren't configured.
         """
         if self._inventory_cache is not None:
             return
 
-        print("Loading inventory cache (using nested relationships)...")
+        print("Loading inventory cache (using manual joins)...")
         start = datetime.now()
 
-        # Ensure dimension caches are loaded (still needed for filter options)
+        # Ensure dimension caches are loaded first
         self.load_cache()
 
-        # Fetch all inventory with nested dimension data in ONE query (via relationships)
+        # Fetch inventory WITHOUT nested data (relationships not configured in Fabric)
         items = self.fetch_all_inventory(
-            fields=["stock_number", "price", "condition", "days_on_lot", "dim_product_skey", "dim_dealership_skey"],
-            include_nested=True
+            fields=["stock_number", "price", "condition", "days_on_lot", "dim_product_model_skey", "dim_product_skey", "dim_dealership_skey"],
+            include_nested=False
         )
 
-        # Build cache from nested data - no batch fetching needed!
+        # Build cache by joining with dimension caches
         self._inventory_cache = []
         for item in items:
-            product = item.get("dim_product") or {}
-            dealer = item.get("dim_dealership") or {}
+            # Join with dimension caches using skeys
+            product_model = self._products_cache.get(item.get("dim_product_model_skey")) or {}
+            floorplan_data = self._floorplan_cache.get(item.get("dim_product_skey")) or {}
+            dealer = self._dealers_cache.get(item.get("dim_dealership_skey")) or {}
 
             dealer_city = dealer.get("city")
             dealer_state = dealer.get("state")
@@ -1559,11 +1601,11 @@ class FabricGraphQLClient:
                 "price": item.get("price") or 0,
                 "condition": item.get("condition"),
                 "days_on_lot": item.get("days_on_lot") or 0,
-                "rv_type": product.get("rv_type"),
-                "manufacturer": product.get("manufacturer"),
-                "model": product.get("model"),
-                "model_year": product.get("model_year"),
-                "floorplan": product.get("floorplan"),
+                "rv_type": product_model.get("rv_type"),
+                "manufacturer": product_model.get("manufacturer"),
+                "model": product_model.get("model"),
+                "model_year": product_model.get("model_year"),
+                "floorplan": floorplan_data.get("floorplan"),
                 "manufacturer_logo_small": None,  # Excluded from nested query to avoid 64MB limit
                 "dealer_group": dealer.get("dealer_group"),
                 "state": dealer.get("state"),
@@ -1572,6 +1614,7 @@ class FabricGraphQLClient:
                 "county": dealer.get("county"),
                 "dealership": dealer.get("dealership"),
                 "location": location,
+                "dim_product_model_skey": item.get("dim_product_model_skey"),
                 "dim_product_skey": item.get("dim_product_skey"),
                 "dim_dealership_skey": item.get("dim_dealership_skey"),
             })
@@ -1821,9 +1864,9 @@ class FabricGraphQLClient:
         product_query = """
         {
             fact_inventory_currents(first: 1) {
-                groupBy(fields: [dim_product_skey]) {
+                groupBy(fields: [dim_product_model_skey]) {
                     fields {
-                        dim_product_skey
+                        dim_product_model_skey
                     }
                     aggregations {
                         count(field: price)
@@ -1840,7 +1883,7 @@ class FabricGraphQLClient:
         product_groups = product_result.get("fact_inventory_currents", {}).get("groupBy", [])
 
         # Get all unique product keys
-        product_keys = [g.get("fields", {}).get("dim_product_skey") for g in product_groups if g.get("fields", {}).get("dim_product_skey")]
+        product_keys = [g.get("fields", {}).get("dim_product_model_skey") for g in product_groups if g.get("fields", {}).get("dim_product_model_skey")]
 
         # Fetch product details in batches
         products = {}
@@ -1849,9 +1892,9 @@ class FabricGraphQLClient:
             batch = product_keys[i:i + BATCH_SIZE]
             pq = f"""
             {{
-                dim_products(first: 1000, filter: {{ dim_product_skey: {{ in: [{', '.join(str(k) for k in batch)}] }} }}) {{
+                dim_product_models(first: 1000, filter: {{ dim_product_model_skey: {{ in: [{', '.join(str(k) for k in batch)}] }} }}) {{
                     items {{
-                        dim_product_skey
+                        dim_product_model_skey
                         rv_type
                         manufacturer
                     }}
@@ -1859,8 +1902,8 @@ class FabricGraphQLClient:
             }}
             """
             pr = self.execute_query(pq)
-            for p in pr.get("dim_products", {}).get("items", []):
-                products[p["dim_product_skey"]] = p
+            for p in pr.get("dim_product_models", {}).get("items", []):
+                products[p["dim_product_model_skey"]] = p
 
         # Aggregate by rv_type
         by_rv_type_dict = defaultdict(lambda: {"count": 0, "total_value": 0, "prices": []})
@@ -1869,7 +1912,7 @@ class FabricGraphQLClient:
         for group in product_groups:
             fields = group.get("fields", {})
             aggs = group.get("aggregations", {})
-            pkey = fields.get("dim_product_skey")
+            pkey = fields.get("dim_product_model_skey")
             product = products.get(pkey, {})
 
             rv_type = product.get("rv_type")
@@ -1963,6 +2006,8 @@ class DealersResponse(BaseModel):
 class FilterOptionsResponse(BaseModel):
     rv_types: list[str]
     states: list[str]
+    regions: list[str] = []
+    cities: list[str] = []
     conditions: list[str]
     dealer_groups: list[str] = []
     manufacturers: list[str] = []
@@ -2028,14 +2073,14 @@ async def health():
 @app.get("/test-relationship")
 async def test_relationship():
     """Test if GraphQL relationships are set up for nested queries."""
-    # Try nested query with dim_product relationship
+    # Try nested query with dim_product_models relationship
     query = """
     {
         fact_inventory_currents(first: 3) {
             items {
                 price
                 condition
-                dim_product {
+                dim_product_models {
                     rv_type
                     manufacturer
                 }
@@ -2223,10 +2268,10 @@ async def get_exact_totals():
 async def get_table_counts():
     """Get row counts for all tables using groupBy aggregations."""
     try:
-        # Count dim_products using groupBy on rv_type
-        prod_query = """{ dim_products(first: 100) { groupBy(fields: [rv_type]) { aggregations { count(field: dim_product_skey) } } } }"""
+        # Count dim_product_models using groupBy on rv_type
+        prod_query = """{ dim_product_models(first: 100) { groupBy(fields: [rv_type]) { aggregations { count(field: dim_product_model_skey) } } } }"""
         prod_result = client.execute_query(prod_query)
-        prod_groups = prod_result.get("dim_products", {}).get("groupBy", [])
+        prod_groups = prod_result.get("dim_product_models", {}).get("groupBy", [])
         prod_count = sum(g.get("aggregations", {}).get("count", 0) for g in prod_groups)
 
         # Count dim_dealerships using groupBy on state
@@ -2242,9 +2287,9 @@ async def get_table_counts():
         inv_count = sum(g.get("aggregations", {}).get("count", 0) for g in inv_groups)
 
         return {
-            "dim_products": prod_count,
+            "dim_product_models": prod_count,
             "dim_dealerships": dealer_count,
-            "fact_inventory_current": inv_count,
+            "fact_inventory_currents": inv_count,
             "note": "Counts via groupBy aggregation"
         }
     except Exception as e:
@@ -2259,12 +2304,12 @@ async def get_agg_rv_type(limit: Optional[int] = None):
         client.load_cache()
 
         # Fetch ALL inventory with pagination
-        items = client.fetch_all_inventory(fields=["dim_product_skey", "price"])
+        items = client.fetch_all_inventory(fields=["dim_product_model_skey", "price"])
 
         # Aggregate by rv_type using CACHED products (no API calls!)
         by_type = defaultdict(lambda: {"count": 0, "total_value": 0})
         for item in items:
-            product = client.get_product(item.get("dim_product_skey"))
+            product = client.get_product(item.get("dim_product_model_skey"))
             rv_type = product.get("rv_type")
             if rv_type:
                 by_type[rv_type]["count"] += 1
@@ -2320,12 +2365,12 @@ async def get_agg_manufacturer(limit: Optional[int] = None):
         client.load_cache()
 
         # Fetch ALL inventory with pagination
-        items = client.fetch_all_inventory(fields=["dim_product_skey", "price"])
+        items = client.fetch_all_inventory(fields=["dim_product_model_skey", "price"])
 
         # Aggregate using CACHED products (no API calls!)
         by_mfr = defaultdict(lambda: {"count": 0, "total_value": 0})
         for item in items:
-            product = client.get_product(item.get("dim_product_skey"))
+            product = client.get_product(item.get("dim_product_model_skey"))
             mfr = product.get("manufacturer")
             if mfr:
                 by_mfr[mfr]["count"] += 1
