@@ -803,7 +803,7 @@ class FabricGraphQLClient:
             "by_dealer_group": format_aggregation(by_dealer_group)[:5],  # Top 5 dealer groups
             "by_manufacturer": format_aggregation(by_manufacturer)[:5],  # Top 5 manufacturers
             "by_condition": format_aggregation(by_condition),  # All conditions (just 2)
-            "by_state": format_aggregation(by_state)[:5]  # Top 5 states
+            "by_state": format_aggregation(by_state)[:65]  # All US states + Canadian provinces
         }
 
     def build_aggregations_cache(self):
@@ -1053,7 +1053,7 @@ class FabricGraphQLClient:
             "by_dealer_group": format_agg(by_dealer_group, 10),
             "by_manufacturer": format_agg(by_manufacturer, 10),
             "by_condition": sorted(by_condition, key=lambda x: x["count"], reverse=True),
-            "by_state": format_agg(by_state, 10),
+            "by_state": format_agg(by_state, 65),  # All US states + Canadian provinces
             "by_region": format_agg(by_region, 10),
             "by_city": format_agg(by_city, 20),  # More cities, so show top 20
             "by_county": format_agg(by_county, 15)
@@ -1309,7 +1309,7 @@ class FabricGraphQLClient:
                 "by_dealer_group": format_agg(by_dealer_group, 10),
                 "by_manufacturer": format_agg(by_manufacturer, 10),
                 "by_condition": sorted(by_condition, key=lambda x: x["count"], reverse=True),
-                "by_state": format_agg(by_state, 10),
+                "by_state": format_agg(by_state, 65),  # All US states + Canadian provinces
                 "by_region": format_agg(by_region, 10),
                 "by_city": format_agg(by_city, 20),
                 "by_county": format_agg(by_county, 15)
@@ -1558,7 +1558,7 @@ class FabricGraphQLClient:
             "by_dealer_group": format_agg(by_dealer_group, 10),
             "by_manufacturer": format_agg(by_manufacturer, 10),
             "by_condition": sorted(cond_list, key=lambda x: x["count"], reverse=True),
-            "by_state": format_agg(by_state, 10),
+            "by_state": format_agg(by_state, 65),  # All US states + Canadian provinces
             "by_region": format_agg(by_region, 10),
             "by_city": format_agg(by_city, 20),
             "by_county": format_agg(by_county, 15)
@@ -1798,7 +1798,7 @@ class FabricGraphQLClient:
             "by_dealer_group": format_agg(by_dealer_group, 10),
             "by_manufacturer": format_agg(by_manufacturer, 10),
             "by_condition": format_agg(by_condition),
-            "by_state": format_agg(by_state, 10),
+            "by_state": format_agg(by_state, 65),  # All US states + Canadian provinces
             "by_region": format_agg(by_region, 10),
             "by_city": format_agg(by_city, 20),
             "by_county": format_agg(by_county, 15),

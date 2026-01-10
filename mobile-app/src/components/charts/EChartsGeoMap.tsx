@@ -17,7 +17,7 @@ import * as echarts from 'echarts'
 import { formatChartNumber, formatChartPrice, formatCompactValue } from './chartUtils'
 
 // US GeoJSON will be registered dynamically
-const US_GEO_JSON_URL = 'https://cdn.jsdelivr.net/npm/echarts@5/map/json/USA.json'
+const US_GEO_JSON_URL = 'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json'
 
 interface AggregationItem {
   name: string
@@ -185,7 +185,10 @@ export function EChartsGeoMap({
   // Create state data lookup
   const stateDataMap = useMemo(() => {
     const map = new Map<string, AggregationItem>()
-    stateData.forEach(item => map.set(item.name, item))
+    stateData.forEach(item => {
+      const titleCaseName = toTitleCase(item.name)
+      map.set(titleCaseName, item)
+    })
     return map
   }, [stateData])
 
@@ -196,28 +199,33 @@ export function EChartsGeoMap({
 
   // Prepare map data
   const mapSeriesData = useMemo(() => {
+    // Convert selectedState to title case for comparison (API returns uppercase)
+    const selectedStateTitleCase = selectedState ? toTitleCase(selectedState) : null
+
     return stateData.map(item => {
-      const region = STATE_REGIONS[item.name]
+      const stateName = toTitleCase(item.name)
+      const region = STATE_REGIONS[stateName]
       const baseColor = showRegions && region
         ? REGION_COLORS[region] || COLORS.primary
         : COLORS.primary
+      const isSelected = selectedStateTitleCase === stateName
 
       return {
-        name: item.name,
+        name: stateName,
         value: item.count,
         count: item.count,
         total_value: item.total_value,
         avg_price: item.avg_price,
         itemStyle: {
-          areaColor: selectedState === item.name
+          areaColor: isSelected
             ? COLORS.secondary
             : `rgba(${hexToRgb(baseColor)}, ${0.2 + (item.count / maxStateCount) * 0.7})`,
-          borderColor: selectedState === item.name
+          borderColor: isSelected
             ? COLORS.secondary
             : 'rgba(255, 255, 255, 0.15)',
-          borderWidth: selectedState === item.name ? 2 : 0.5,
-          shadowBlur: selectedState === item.name ? 20 : 0,
-          shadowColor: selectedState === item.name ? COLORS.glowGold : 'transparent',
+          borderWidth: isSelected ? 2 : 0.5,
+          shadowBlur: isSelected ? 20 : 0,
+          shadowColor: isSelected ? COLORS.glowGold : 'transparent',
         },
         emphasis: {
           itemStyle: {
@@ -391,9 +399,9 @@ export function EChartsGeoMap({
           max: 6,
         },
         itemStyle: {
-          areaColor: COLORS.bgCard,
-          borderColor: 'rgba(255, 255, 255, 0.1)',
-          borderWidth: 0.5,
+          areaColor: '#2a2a29',
+          borderColor: 'rgba(255, 255, 255, 0.4)',
+          borderWidth: 1.5,
         },
         emphasis: {
           disabled: false,
@@ -460,7 +468,8 @@ export function EChartsGeoMap({
       if (data?.name) onCitySelect(data.name)
     } else if (params.componentType === 'geo' || params.seriesType === 'map') {
       if (onStateSelect && params.name) {
-        onStateSelect(params.name)
+        // Convert title case back to uppercase for API compatibility
+        onStateSelect(params.name.toUpperCase())
       }
     }
   }, [onStateSelect, onCitySelect])
@@ -642,3 +651,8 @@ function hexToRgb(hex: string): string {
 }
 
 export default EChartsGeoMap
+
+// Helper: Convert state name to Title Case (e.g., "CALIFORNIA" -> "California")
+function toTitleCase(str: string): string {
+  return str.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())
+}

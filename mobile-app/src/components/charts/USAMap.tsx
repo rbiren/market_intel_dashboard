@@ -115,13 +115,15 @@ export function USAMap({
   } | null>(null)
   const [position, setPosition] = useState({ coordinates: [-96, 38] as [number, number], zoom: 1 })
 
-  // Create data lookup map
+  // Create data lookup map (convert API uppercase names to title case for GeoJSON matching)
   const dataMap = useMemo(() => {
     const map = new Map<string, AggregationItem>()
     data.forEach(item => {
-      map.set(item.name, item)
+      // Convert uppercase API names to title case for GeoJSON matching
+      const titleCaseName = toTitleCase(item.name)
+      map.set(titleCaseName, item)
       // Also map by abbreviation
-      const abbr = STATE_ABBR[item.name]
+      const abbr = STATE_ABBR[titleCaseName]
       if (abbr) map.set(abbr, item)
     })
     return map
@@ -166,7 +168,8 @@ export function USAMap({
   const handleStateClick = useCallback((geo: { properties: { name: string } }) => {
     const stateName = geo.properties.name
     if (onStateSelect) {
-      onStateSelect(stateName)
+      // Convert title case back to uppercase for API compatibility
+      onStateSelect(stateName.toUpperCase())
     }
   }, [onStateSelect])
 
@@ -484,3 +487,8 @@ export function USAMap({
 }
 
 export default USAMap
+
+// Helper: Convert state name to Title Case (e.g., "CALIFORNIA" -> "California")
+function toTitleCase(str: string): string {
+  return str.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())
+}

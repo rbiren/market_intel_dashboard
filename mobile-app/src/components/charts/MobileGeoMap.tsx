@@ -82,10 +82,13 @@ export function MobileGeoMap({
   const [viewMode, setViewMode] = useState<'map' | 'list' | 'regions'>('map')
   const [activeStateDetail, setActiveStateDetail] = useState<AggregationItem | null>(null)
 
-  // Create data lookup
+  // Create data lookup (convert API uppercase names to title case for GeoJSON matching)
   const stateDataMap = useMemo(() => {
     const map = new Map<string, AggregationItem>()
-    stateData.forEach(item => map.set(item.name, item))
+    stateData.forEach(item => {
+      const titleCaseName = toTitleCase(item.name)
+      map.set(titleCaseName, item)
+    })
     return map
   }, [stateData])
 
@@ -116,13 +119,14 @@ export function MobileGeoMap({
     const regions = new Map<string, { count: number; value: number; states: string[] }>()
 
     stateData.forEach(state => {
-      const region = STATE_REGIONS[state.name]
+      const titleCaseName = toTitleCase(state.name)
+      const region = STATE_REGIONS[titleCaseName]
       if (!region) return
 
       const current = regions.get(region) || { count: 0, value: 0, states: [] }
       current.count += state.count
       current.value += state.total_value
-      current.states.push(state.name)
+      current.states.push(titleCaseName)
       regions.set(region, current)
     })
 
@@ -423,3 +427,8 @@ export function MobileGeoMap({
 }
 
 export default MobileGeoMap
+
+// Helper: Convert state name to Title Case (e.g., "CALIFORNIA" -> "California")
+function toTitleCase(str: string): string {
+  return str.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())
+}

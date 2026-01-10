@@ -231,6 +231,9 @@ TopBarChart.tsx          - Horizontal/vertical bar charts
 ConditionComparison.tsx  - NEW/USED comparison
 StateTreemap.tsx         - Geographic treemap
 PriceDistributionChart.tsx - Price histogram
+EChartsGeoMap.tsx        - ECharts USA choropleth map (Version C)
+USAMap.tsx               - react-simple-maps choropleth (Versions A, B, D-J)
+MobileGeoMap.tsx         - Mobile geo map with region aggregation
 ```
 
 ### Frontend Dependencies for Charts
@@ -388,6 +391,40 @@ interface EChartsTooltipParams {
 ### 16. GraphQL Table Naming Convention
 **Problem**: Lakehouse tables are singular (`dim_product`), but GraphQL queries are plural (`dim_products`). Easy to get confused.
 **Solution**: Always use plural form in GraphQL queries. The API automatically pluralizes table names.
+
+### 17. Geo Map State Name Case Mismatch (January 2025)
+**Problem**: API returns state names in UPPERCASE ("TEXAS", "CALIFORNIA"), but GeoJSON/TopoJSON files use Title Case ("Texas", "California"). Maps showed no data because lookups failed.
+**Solution**: Add `toTitleCase()` helper function to convert API names when building lookup maps, and convert back to UPPERCASE in click handlers for API calls:
+```typescript
+// Helper function (add to end of geo map components)
+function toTitleCase(str: string): string {
+  return str.toLowerCase().replace(/\b\w/g, l => l.toUpperCase())
+}
+
+// When building data lookup map
+const dataMap = useMemo(() => {
+  const map = new Map<string, AggregationItem>()
+  data.forEach(item => {
+    const titleCaseName = toTitleCase(item.name)  // Convert UPPERCASE to Title Case
+    map.set(titleCaseName, item)
+  })
+  return map
+}, [data])
+
+// When handling click (send UPPERCASE back to API)
+const handleStateClick = (geo: { properties: { name: string } }) => {
+  onStateSelect(geo.properties.name.toUpperCase())  // Convert Title Case back to UPPERCASE
+}
+```
+
+**Affected files**:
+- `EChartsGeoMap.tsx` - ECharts geo map (Version C)
+- `USAMap.tsx` - react-simple-maps (Versions A, B, D-J)
+- `MobileGeoMap.tsx` - Mobile version with region aggregation
+
+### 18. API State Limit Was Too Low
+**Problem**: API only returned 10 states in `by_state` aggregation, causing maps to show incomplete data.
+**Solution**: Changed state limit from 10 to 65 in `api/main.py` (5 locations in aggregation queries).
 
 ---
 
