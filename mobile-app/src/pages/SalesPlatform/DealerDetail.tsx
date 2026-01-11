@@ -7,7 +7,7 @@
 
 import { useMemo } from 'react'
 import { useSalesContext } from '../../context/SalesContext'
-import { useDealerDetail } from '../../hooks/useSalesData'
+import { useDealerDetail, useSalesVelocity } from '../../hooks/useSalesData'
 import { StatCard } from '../../components/sales/StatCard'
 import { MiniBarChart, MiniDonutChart, ProgressBar } from '../../components/sales/MiniChart'
 import { StatCardSkeleton } from '../../components/sales/LoadingState'
@@ -15,6 +15,11 @@ import { StatCardSkeleton } from '../../components/sales/LoadingState'
 export function DealerDetail() {
   const { theme, viewMode, selectedDealer, setCurrentView } = useSalesContext()
   const { data, loading } = useDealerDetail(selectedDealer?.name || null)
+  // Fetch sales velocity for this dealer
+  const dealerFilters = useMemo(() => ({
+    dealerGroup: selectedDealer?.name
+  }), [selectedDealer?.name])
+  const { data: velocityData, loading: velocityLoading } = useSalesVelocity(dealerFilters)
 
   const isDark = theme === 'dark'
   const isMobile = viewMode === 'mobile'
@@ -289,6 +294,83 @@ export function DealerDetail() {
                   {formatCurrency(data?.max_price || 0)}
                 </span>
               </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Sales Velocity Section */}
+      <div className="px-4 mt-6">
+        <h3 className={`font-semibold mb-3 ${isDark ? 'text-[#fffdfa]' : 'text-[#181817]'}`}>
+          Sales Velocity
+        </h3>
+        <div className={`
+          p-4 rounded-xl
+          ${isDark ? 'bg-[#232322] border border-white/10' : 'bg-white border border-[#d9d6cf] shadow-sm'}
+        `}>
+          {velocityLoading ? (
+            <div className="h-32 flex items-center justify-center">
+              <div className="w-10 h-10 border-2 border-[#495737] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : velocityData && velocityData.total_sold > 0 ? (
+            <div className="space-y-4">
+              {/* Key metrics row */}
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className={`text-2xl font-bold text-[#495737]`}>
+                    {velocityData.total_sold.toLocaleString()}
+                  </div>
+                  <div className={`text-xs uppercase font-semibold tracking-wider ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+                    Units Sold
+                  </div>
+                </div>
+                <div>
+                  <div className={`text-2xl font-bold text-[#a46807]`}>
+                    {velocityData.avg_days_to_sell ? Math.round(velocityData.avg_days_to_sell) : '-'}
+                  </div>
+                  <div className={`text-xs uppercase font-semibold tracking-wider ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+                    Avg Days
+                  </div>
+                </div>
+                <div>
+                  <div className={`text-2xl font-bold text-[#577d91]`}>
+                    {velocityData.avg_sale_price ? formatCurrency(velocityData.avg_sale_price) : '-'}
+                  </div>
+                  <div className={`text-xs uppercase font-semibold tracking-wider ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+                    Avg Sale
+                  </div>
+                </div>
+              </div>
+
+              {/* Velocity by condition */}
+              {velocityData.by_condition && velocityData.by_condition.length > 0 && (
+                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-[#d9d6cf]'}`}>
+                  <div className="grid grid-cols-2 gap-4">
+                    {velocityData.by_condition.map((item) => (
+                      <div key={item.name} className={`p-3 rounded-lg ${isDark ? 'bg-white/5' : 'bg-[#f7f4f0]'}`}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`text-sm font-medium ${item.name === 'NEW' ? 'text-[#495737]' : 'text-[#a46807]'}`}>
+                            {item.name}
+                          </span>
+                          <span className={`text-xs ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+                            {item.sold_count.toLocaleString()} sold
+                          </span>
+                        </div>
+                        <div className={`text-lg font-bold ${isDark ? 'text-[#fffdfa]' : 'text-[#181817]'}`}>
+                          {item.avg_days_to_sell ? `${Math.round(item.avg_days_to_sell)} days` : '-'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className={`text-center py-6 ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+              <svg className="w-10 h-10 mx-auto mb-2 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <p className="text-sm">No sales history available for this dealer</p>
             </div>
           )}
         </div>

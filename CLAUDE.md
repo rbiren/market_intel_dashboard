@@ -315,10 +315,14 @@ MobileGeoMap.tsx         - Mobile geo map with region aggregation
 | `/filters` | GET | Filter options (rv_types, states, regions, cities, conditions, dealer_groups) |
 | `/dealers` | GET | List of dealership names |
 | `/inventory` | GET | Inventory items with filters |
-| `/inventory/aggregated` | GET | Aggregated stats (KPIs, charts) with by_region, by_city, by_county |
+| `/inventory/aggregated` | GET | Aggregated stats (KPIs, charts) with by_region, by_city, by_county. Includes `avg_days_to_sell` and `sales_velocity` |
 | `/inventory/totals` | GET | Quick totals via native groupBy |
+| `/inventory/sales-velocity` | GET | Sales velocity metrics (Delta Lake mode only) - days to sell, sale prices, breakdowns by dimension |
+| `/inventory/sales-date-range` | GET | Available date range for sales data (min_date, max_date) |
 
 **Common Params**: `rv_class`, `dealer_group`, `manufacturer`, `condition`, `state`, `min_price`, `max_price`, `limit`
+
+**Sales Velocity Params**: `start_date` (YYYY-MM-DD), `end_date` (YYYY-MM-DD) - Filter sales by date range
 
 ---
 

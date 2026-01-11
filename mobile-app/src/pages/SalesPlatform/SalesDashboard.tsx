@@ -7,7 +7,7 @@
 
 import { useMemo } from 'react'
 import { useSalesContext } from '../../context/SalesContext'
-import { useTerritoryStats, useAggregatedData } from '../../hooks/useSalesData'
+import { useTerritoryStats, useAggregatedData, useSalesVelocityStats } from '../../hooks/useSalesData'
 import { StatCard } from '../../components/sales/StatCard'
 import { DealerCard } from '../../components/sales/DealerCard'
 import { MiniBarChart, MiniDonutChart, MarketShareBar } from '../../components/sales/MiniChart'
@@ -17,6 +17,7 @@ export function SalesDashboard() {
   const { theme, viewMode, filters, setCurrentView, setSelectedDealer } = useSalesContext()
   const { stats, loading: statsLoading } = useTerritoryStats(filters)
   const { data: aggData, loading: aggLoading } = useAggregatedData(filters)
+  const { stats: velocityStats, loading: velocityLoading } = useSalesVelocityStats(filters)
 
   const isDark = theme === 'dark'
   const isMobile = viewMode === 'mobile'
@@ -212,6 +213,87 @@ export function SalesDashboard() {
             <MarketShareBar items={rvTypeData.slice(0, 4)} />
           )}
         </div>
+      </div>
+
+      {/* Sales Velocity Section */}
+      <div className="px-4 mt-6">
+        <h3 className={`font-semibold mb-3 ${isDark ? 'text-[#fffdfa]' : 'text-[#181817]'}`}>
+          Sales Velocity
+        </h3>
+        <div className={`grid gap-4 ${isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
+          {velocityLoading ? (
+            [...Array(4)].map((_, i) => <StatCardSkeleton key={i} />)
+          ) : (
+            <>
+              <StatCard
+                label="Total Sold"
+                value={formatNumber(velocityStats?.totalSold || 0)}
+                subValue="historical sales"
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                }
+                color="sage"
+              />
+              <StatCard
+                label="Avg Days to Sell"
+                value={velocityStats?.avgDaysToSell ? Math.round(velocityStats.avgDaysToSell) : '-'}
+                subValue="turn time"
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                }
+                color="gold"
+              />
+              <StatCard
+                label="Avg Sale Price"
+                value={velocityStats?.avgSalePrice ? formatCurrency(velocityStats.avgSalePrice) : '-'}
+                subValue="sold units"
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                }
+                color="steel"
+              />
+              <StatCard
+                label="Total Sales Value"
+                value={velocityStats?.totalSalesValue ? formatCurrency(velocityStats.totalSalesValue) : '-'}
+                subValue="all time"
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                }
+                color="neutral"
+              />
+            </>
+          )}
+        </div>
+
+        {/* Velocity by Condition */}
+        {!velocityLoading && velocityStats?.byCondition && velocityStats.byCondition.length > 0 && (
+          <div className={`
+            mt-4 p-4 rounded-xl grid grid-cols-2 gap-4
+            ${isDark ? 'bg-[#232322] border border-white/10' : 'bg-white border border-[#d9d6cf] shadow-sm'}
+          `}>
+            {velocityStats.byCondition.map((item) => (
+              <div key={item.name} className="text-center">
+                <div className={`text-2xl font-bold ${item.name === 'NEW' ? 'text-[#495737]' : 'text-[#a46807]'}`}>
+                  {item.avg_days_to_sell ? Math.round(item.avg_days_to_sell) : '-'}
+                </div>
+                <div className={`text-xs uppercase font-semibold tracking-wider ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+                  {item.name} Days Avg
+                </div>
+                <div className={`text-sm mt-1 ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+                  {formatNumber(item.sold_count)} sold
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Quick Actions */}

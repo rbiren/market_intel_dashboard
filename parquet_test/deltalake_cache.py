@@ -326,24 +326,24 @@ def build_aggregations(cache: Dict[str, Any]) -> Dict[str, Any]:
         by_region.columns = ['region', 'count', 'total_value', 'avg_price']
         agg['by_region'] = by_region.to_dict('records')
 
-    # By Dealer Group (top 20)
+    # By Dealer Group (all - no limit)
     if 'dealer_group' in inventory.columns:
         by_dealer = inventory.groupby('dealer_group').agg({
             'stock_number': 'count',
             'price': ['sum', 'mean']
         }).reset_index()
         by_dealer.columns = ['dealer_group', 'count', 'total_value', 'avg_price']
-        by_dealer = by_dealer.sort_values('count', ascending=False).head(20)
+        by_dealer = by_dealer.sort_values('count', ascending=False)
         agg['by_dealer_group'] = by_dealer.to_dict('records')
 
-    # By Manufacturer (top 20)
+    # By Manufacturer (all - no limit)
     if 'manufacturer' in inventory.columns:
         by_mfr = inventory.groupby('manufacturer').agg({
             'stock_number': 'count',
             'price': ['sum', 'mean']
         }).reset_index()
         by_mfr.columns = ['manufacturer', 'count', 'total_value', 'avg_price']
-        by_mfr = by_mfr.sort_values('count', ascending=False).head(20)
+        by_mfr = by_mfr.sort_values('count', ascending=False)
         agg['by_manufacturer'] = by_mfr.to_dict('records')
 
     # By City (top 50)
