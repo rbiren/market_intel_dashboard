@@ -557,6 +557,74 @@ cd api && python -m uvicorn main:app --port 8000
 
 ---
 
+## Direct Delta Table Access (Alternative to GraphQL)
+
+**Location:** `parquet_test/`
+
+A standalone Python solution that reads gold Delta tables directly using the `deltalake` library - **no GraphQL required**.
+
+### Quick Start
+
+```bash
+cd parquet_test
+pip install deltalake azure-identity pandas pyarrow
+az login
+python gold_table_reader.py discover    # List all tables
+python gold_table_reader.py inventory   # Get 187K rows with joins
+```
+
+### Key Benefits Over GraphQL
+
+| Aspect | deltalake | GraphQL |
+|--------|-----------|---------|
+| Record Limit | **None** (full 187K) | 100k max |
+| Joins | Native pandas | Not supported |
+| Startup Time | Seconds | 20-25 min cache build |
+| Auth | `az login` | Complex credential chain |
+
+### How It Works
+
+```python
+from gold_table_reader import read_table, get_inventory_with_details
+
+# Read any gold table
+df = read_table('gold', 'fact_inventory_current')  # 187,241 rows
+df = read_table('gold', 'dim_product_model')       # rv_type, manufacturer
+df = read_table('gold', 'dim_dealership')          # dealer_group, state
+
+# Get inventory with all joins
+df = get_inventory_with_details()
+# Columns: stock_number, price, condition, rv_type, manufacturer,
+#          dealer_group, state, region, city, county, days_on_lot
+```
+
+### URI Format
+
+```
+abfss://{WORKSPACE_ID}@onelake.dfs.fabric.microsoft.com/{LAKEHOUSE_ID}/Tables/gold/{table}
+```
+
+### Available Gold Tables
+
+- `fact_inventory_current` (187K rows) - Current inventory
+- `fact_inventory` (37 cols) - Full history
+- `fact_inventory_sales` - Sold units
+- `dim_product_model` - rv_type, manufacturer, model
+- `dim_product` - floorplan
+- `dim_dealership` - dealer_group, state, region, city, county
+- `dim_date` - Calendar with fiscal periods
+- `fact_statistical_survey_registration` - 42 cols registration data
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `parquet_test/gold_table_reader.py` | Main Delta table reader with joins |
+| `parquet_test/list_all_parquet.py` | List raw parquet files |
+| `parquet_test/README.md` | Full documentation |
+
+---
+
 ## Future Improvements
 
 See `PROPOSAL-GraphQL-Architecture.md` for detailed analysis and recommendations:
