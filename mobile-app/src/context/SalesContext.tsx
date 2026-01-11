@@ -25,6 +25,8 @@ export interface SalesFilters {
   rvType?: string
   condition?: string
   manufacturer?: string
+  model?: string
+  floorplan?: string
   minPrice?: number
   maxPrice?: number
   searchQuery?: string

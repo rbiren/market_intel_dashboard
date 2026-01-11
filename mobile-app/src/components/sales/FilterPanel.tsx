@@ -163,6 +163,22 @@ export function FilterPanel({ mode = 'inline', onClose }: FilterPanelProps) {
             placeholder="All Manufacturers"
           />
 
+          {/* Model */}
+          <FilterSelect
+            label="Model"
+            filterKey="model"
+            options={(filterOptions?.models || []).slice(0, 50)}
+            placeholder="All Models"
+          />
+
+          {/* Floorplan */}
+          <FilterSelect
+            label="Floorplan"
+            filterKey="floorplan"
+            options={(filterOptions?.floorplans || []).slice(0, 50)}
+            placeholder="All Floorplans"
+          />
+
           {/* Price Range */}
           <div>
             <label className={labelClasses}>Price Range</label>

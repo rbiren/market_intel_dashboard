@@ -127,8 +127,33 @@ export interface FilterOptionsData {
   conditions: string[]
   dealer_groups: string[]
   manufacturers: string[]
+  models: string[]
+  floorplans: string[]
   regions?: string[]
   cities?: string[]
+}
+
+export interface TopFloorplanItem {
+  floorplan: string
+  manufacturer: string
+  model: string
+  sold_count: number
+  avg_days_to_sell?: number
+  avg_sale_price?: number
+  total_sales_value?: number
+}
+
+export interface TopFloorplansByCategory {
+  category: string
+  floorplans: TopFloorplanItem[]
+}
+
+export interface TopFloorplansData {
+  categories: TopFloorplansByCategory[]
+  date_range: {
+    start_date: string | null
+    end_date: string | null
+  }
 }
 
 // Build URL params from filters
@@ -137,6 +162,8 @@ function buildFilterParams(filters: SalesFilters): URLSearchParams {
   if (filters.rvType) params.append('rv_class', filters.rvType)
   if (filters.dealerGroup) params.append('dealer_group', filters.dealerGroup)
   if (filters.manufacturer) params.append('manufacturer', filters.manufacturer)
+  if (filters.model) params.append('model', filters.model)
+  if (filters.floorplan) params.append('floorplan', filters.floorplan)
   if (filters.condition) params.append('condition', filters.condition)
   if (filters.state) params.append('state', filters.state)
   if (filters.minPrice !== undefined) params.append('min_price', filters.minPrice.toString())
@@ -560,4 +587,44 @@ export function useSalesVelocityStats(filters: SalesFilters = {}) {
   }, [velocityData])
 
   return { stats, loading, error }
+}
+
+/**
+ * Hook for fetching top selling floorplans by RV category
+ */
+export function useTopFloorplans(startDate?: string, endDate?: string, limit: number = 10) {
+  const [data, setData] = useState<TopFloorplansData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const params = new URLSearchParams()
+      if (startDate) params.append('start_date', startDate)
+      if (endDate) params.append('end_date', endDate)
+      params.append('limit', limit.toString())
+
+      const response = await fetch(`${API_BASE}/inventory/top-floorplans?${params.toString()}`)
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const result = await response.json()
+      setData(result)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch top floorplans data')
+    } finally {
+      setLoading(false)
+    }
+  }, [startDate, endDate, limit])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  return { data, loading, error, refetch: fetchData }
 }

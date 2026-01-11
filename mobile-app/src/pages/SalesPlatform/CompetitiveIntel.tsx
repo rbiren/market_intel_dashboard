@@ -7,18 +7,19 @@
 
 import { useMemo, useState } from 'react'
 import { useSalesContext } from '../../context/SalesContext'
-import { useCompetitiveAnalysis, useAggregatedData, useSalesVelocity } from '../../hooks/useSalesData'
+import { useCompetitiveAnalysis, useAggregatedData, useSalesVelocity, useTopFloorplans } from '../../hooks/useSalesData'
 import { StatCard } from '../../components/sales/StatCard'
 import { MiniBarChart, MarketShareBar } from '../../components/sales/MiniChart'
 import { StatCardSkeleton, ChartSkeleton } from '../../components/sales/LoadingState'
 
-type TabOption = 'manufacturers' | 'dealers' | 'types' | 'regions' | 'velocity'
+type TabOption = 'manufacturers' | 'dealers' | 'types' | 'regions' | 'velocity' | 'floorplans'
 
 export function CompetitiveIntel() {
   const { theme, viewMode, filters } = useSalesContext()
   const { analysis, loading } = useCompetitiveAnalysis(filters)
   const { data: aggData } = useAggregatedData(filters)
   const { data: velocityData, loading: velocityLoading } = useSalesVelocity(filters)
+  const { data: floorplansData, loading: floorplansLoading } = useTopFloorplans(filters.startDate, filters.endDate, 10)
 
   const [activeTab, setActiveTab] = useState<TabOption>('manufacturers')
 
@@ -70,6 +71,7 @@ export function CompetitiveIntel() {
     { id: 'types', label: 'RV Types', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
     { id: 'regions', label: 'Regions', icon: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
     { id: 'velocity', label: 'Velocity', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+    { id: 'floorplans', label: 'Floorplans', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
   ]
 
   return (
@@ -281,6 +283,96 @@ export function CompetitiveIntel() {
           ) : (
             <div className={`text-center py-12 ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
               <p>No sales velocity data available</p>
+            </div>
+          )
+        ) : activeTab === 'floorplans' ? (
+          floorplansLoading ? (
+            <ChartSkeleton height={400} />
+          ) : floorplansData?.categories && floorplansData.categories.length > 0 ? (
+            <div className="space-y-6">
+              {/* Top Floorplans by Category */}
+              {floorplansData.categories.map((category) => (
+                <div
+                  key={category.category}
+                  className={`rounded-xl overflow-hidden ${isDark ? 'bg-[#232322] border border-white/10' : 'bg-white border border-[#d9d6cf] shadow-sm'}`}
+                >
+                  {/* Category Header */}
+                  <div className={`px-4 py-3 border-b ${isDark ? 'border-white/10 bg-white/5' : 'border-[#d9d6cf] bg-[#f7f4f0]'}`}>
+                    <div className="flex items-center justify-between">
+                      <h3 className={`font-bold ${isDark ? 'text-[#fffdfa]' : 'text-[#181817]'}`}>
+                        {category.category}
+                      </h3>
+                      <span className={`text-sm px-2 py-0.5 rounded-full ${isDark ? 'bg-white/10 text-[#8c8a7e]' : 'bg-[#d9d6cf]/50 text-[#595755]'}`}>
+                        Top {category.floorplans.length}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Floorplans Table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className={`text-xs uppercase tracking-wider ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+                          <th className="text-left py-3 px-4 w-10">#</th>
+                          <th className="text-left py-3 px-2">Floorplan</th>
+                          <th className="text-left py-3 px-2">Manufacturer</th>
+                          <th className="text-right py-3 px-2">Sold</th>
+                          <th className="text-right py-3 px-2">Avg Days</th>
+                          <th className="text-right py-3 px-4">Avg Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {category.floorplans.map((item, i) => (
+                          <tr
+                            key={`${category.category}-${item.floorplan}-${i}`}
+                            className={`
+                              transition-colors
+                              ${isDark ? 'hover:bg-white/5' : 'hover:bg-[#f7f4f0]'}
+                              ${i < category.floorplans.length - 1 ? isDark ? 'border-b border-white/5' : 'border-b border-[#d9d6cf]/50' : ''}
+                            `}
+                          >
+                            <td className={`py-3 px-4 font-bold ${i < 3 ? 'text-[#a46807]' : isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+                              {i + 1}
+                            </td>
+                            <td className={`py-3 px-2 ${isDark ? 'text-[#fffdfa]' : 'text-[#181817]'}`}>
+                              <div className="font-semibold truncate max-w-[200px]">{item.floorplan || 'N/A'}</div>
+                              {item.model && (
+                                <div className={`text-xs ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+                                  {item.model}
+                                </div>
+                              )}
+                            </td>
+                            <td className={`py-3 px-2 text-sm ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+                              {item.manufacturer || 'Unknown'}
+                            </td>
+                            <td className={`py-3 px-2 text-right font-bold ${i === 0 ? 'text-[#495737]' : isDark ? 'text-[#fffdfa]' : 'text-[#181817]'}`}>
+                              {item.sold_count.toLocaleString()}
+                            </td>
+                            <td className={`py-3 px-2 text-right ${item.avg_days_to_sell && item.avg_days_to_sell < 60 ? 'text-[#495737] font-semibold' : isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+                              {item.avg_days_to_sell ? Math.round(item.avg_days_to_sell) : '-'}
+                            </td>
+                            <td className={`py-3 px-4 text-right ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+                              {item.avg_sale_price ? formatCurrency(item.avg_sale_price) : '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+
+              {/* Date Range Info */}
+              {floorplansData.date_range && (floorplansData.date_range.start_date || floorplansData.date_range.end_date) && (
+                <div className={`text-center text-sm ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+                  Data from: {floorplansData.date_range.start_date || 'All time'} to {floorplansData.date_range.end_date || 'Present'}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className={`text-center py-12 ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+              <p>No floorplan data available</p>
+              <p className="text-sm mt-1">Try adjusting your date filters</p>
             </div>
           )
         ) : loading ? (

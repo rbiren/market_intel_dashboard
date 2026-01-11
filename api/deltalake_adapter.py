@@ -77,17 +77,21 @@ class DeltaLakeClient:
                 'cities': [],
                 'conditions': [],
                 'dealer_groups': [],
-                'manufacturers': []
+                'manufacturers': [],
+                'models': [],
+                'floorplans': []
             }
 
         return {
             'rv_types': sorted(inventory['rv_type'].dropna().unique().tolist()),
             'states': sorted(inventory['state'].dropna().unique().tolist()),
             'regions': sorted(inventory['region'].dropna().unique().tolist()) if 'region' in inventory.columns else [],
-            'cities': sorted(inventory['city'].dropna().unique().tolist())[:500] if 'city' in inventory.columns else [],
+            'cities': sorted(inventory['city'].dropna().unique().tolist()) if 'city' in inventory.columns else [],
             'conditions': sorted(inventory['condition'].dropna().unique().tolist()),
             'dealer_groups': sorted(inventory['dealer_group'].dropna().unique().tolist()),
-            'manufacturers': sorted(inventory['manufacturer'].dropna().unique().tolist())
+            'manufacturers': sorted(inventory['manufacturer'].dropna().unique().tolist()),
+            'models': sorted(inventory['model'].dropna().unique().tolist()) if 'model' in inventory.columns else [],
+            'floorplans': sorted(inventory['floorplan'].dropna().unique().tolist()) if 'floorplan' in inventory.columns else []
         }
 
     def list_dealers(self) -> List[str]:
@@ -105,6 +109,8 @@ class DeltaLakeClient:
         manufacturer: str = None,
         condition: str = None,
         state: str = None,
+        model: str = None,
+        floorplan: str = None,
         min_price: float = None,
         max_price: float = None,
         limit: int = 100
@@ -129,6 +135,10 @@ class DeltaLakeClient:
             df = df[df['condition'] == condition]
         if state:
             df = df[df['state'] == state]
+        if model and 'model' in df.columns:
+            df = df[df['model'] == model]
+        if floorplan and 'floorplan' in df.columns:
+            df = df[df['floorplan'] == floorplan]
         if min_price is not None:
             df = df[df['price'] >= min_price]
         if max_price is not None:
@@ -194,6 +204,8 @@ class DeltaLakeClient:
         manufacturer: str = None,
         condition: str = None,
         state: str = None,
+        model: str = None,
+        floorplan: str = None,
         min_price: float = None,
         max_price: float = None
     ) -> Dict[str, Any]:
@@ -204,6 +216,8 @@ class DeltaLakeClient:
             manufacturer=manufacturer,
             condition=condition,
             state=state,
+            model=model,
+            floorplan=floorplan,
             min_price=min_price,
             max_price=max_price
         )
@@ -215,6 +229,8 @@ class DeltaLakeClient:
         manufacturer: str = None,
         condition: str = None,
         state: str = None,
+        model: str = None,
+        floorplan: str = None,
         min_price: float = None,
         max_price: float = None
     ) -> Dict[str, Any]:
@@ -236,6 +252,10 @@ class DeltaLakeClient:
             df = df[df['condition'] == condition]
         if state:
             df = df[df['state'] == state]
+        if model and 'model' in df.columns:
+            df = df[df['model'] == model]
+        if floorplan and 'floorplan' in df.columns:
+            df = df[df['floorplan'] == floorplan]
         if min_price is not None:
             df = df[df['price'] >= min_price]
         if max_price is not None:
@@ -450,6 +470,8 @@ class DeltaLakeClient:
         manufacturer: str = None,
         condition: str = None,
         state: str = None,
+        model: str = None,
+        floorplan: str = None,
         start_date: str = None,
         end_date: str = None,
     ) -> Dict[str, Any]:
@@ -473,6 +495,10 @@ class DeltaLakeClient:
             df = df[df['manufacturer'] == manufacturer]
         if condition:
             df = df[df['condition'] == condition]
+        if model and 'model' in df.columns:
+            df = df[df['model'] == model]
+        if floorplan and 'floorplan' in df.columns:
+            df = df[df['floorplan'] == floorplan]
         if state:
             df = df[df['state'] == state]
 
@@ -620,4 +646,113 @@ class DeltaLakeClient:
         return {
             'min_date': dates.min().strftime('%Y-%m-%d') if not dates.empty else None,
             'max_date': dates.max().strftime('%Y-%m-%d') if not dates.empty else None,
+        }
+
+    def get_top_floorplans(
+        self,
+        start_date: str = None,
+        end_date: str = None,
+        limit: int = 10
+    ) -> Dict[str, Any]:
+        """
+        Get top selling floorplans by RV type category.
+
+        Returns top 10 floorplans for each RV type category:
+        - CLASS A, CLASS B, CLASS C (Motorized)
+        - FIFTH WHEEL (Towable)
+        - TRAVEL TRAILER (Towable)
+        - Other categories
+        """
+        sales = self._cache.get('sales')
+        if sales is None or 'floorplan' not in sales.columns:
+            return self._empty_top_floorplans_response()
+
+        df = sales.copy()
+
+        # Apply date filters if provided
+        if 'calendar_date' in df.columns:
+            if start_date:
+                try:
+                    start_dt = pd.to_datetime(start_date)
+                    df = df[pd.to_datetime(df['calendar_date']) >= start_dt]
+                except Exception:
+                    pass
+            if end_date:
+                try:
+                    end_dt = pd.to_datetime(end_date)
+                    df = df[pd.to_datetime(df['calendar_date']) <= end_dt]
+                except Exception:
+                    pass
+
+        if len(df) == 0:
+            return self._empty_top_floorplans_response()
+
+        # Define RV type categories
+        categories = {
+            'CLASS A': ['CLASS A'],
+            'CLASS B': ['CLASS B'],
+            'CLASS C': ['CLASS C'],
+            'FIFTH WHEEL': ['FIFTH WHEEL'],
+            'TRAVEL TRAILER': ['TRAVEL TRAILER'],
+            'OTHER': []  # Will capture everything else
+        }
+
+        # Get all unique RV types
+        all_rv_types = df['rv_type'].dropna().unique().tolist() if 'rv_type' in df.columns else []
+        categorized = set()
+        for cat_types in categories.values():
+            categorized.update(cat_types)
+        categories['OTHER'] = [t for t in all_rv_types if t not in categorized]
+
+        result = {
+            'total_sold': len(df),
+            'categories': {}
+        }
+
+        # Build top floorplans for each category
+        for category, rv_types in categories.items():
+            if not rv_types:
+                continue
+
+            cat_df = df[df['rv_type'].isin(rv_types)]
+            if len(cat_df) == 0:
+                continue
+
+            # Group by floorplan and aggregate
+            floorplan_stats = cat_df.groupby(['floorplan', 'manufacturer', 'model']).agg({
+                'stock_number': 'count',
+                'days_to_sell': 'mean',
+                'sale_price': ['sum', 'mean']
+            }).reset_index()
+
+            floorplan_stats.columns = ['floorplan', 'manufacturer', 'model', 'sold_count', 'avg_days_to_sell', 'total_value', 'avg_price']
+            floorplan_stats = floorplan_stats.sort_values('sold_count', ascending=False).head(limit)
+
+            category_items = []
+            for _, row in floorplan_stats.iterrows():
+                category_items.append({
+                    'floorplan': str(row['floorplan']) if pd.notna(row['floorplan']) else 'Unknown',
+                    'manufacturer': str(row['manufacturer']) if pd.notna(row['manufacturer']) else 'Unknown',
+                    'model': str(row['model']) if pd.notna(row['model']) else 'Unknown',
+                    'sold_count': int(row['sold_count']),
+                    'avg_days_to_sell': float(row['avg_days_to_sell']) if pd.notna(row['avg_days_to_sell']) else None,
+                    'total_value': float(row['total_value']) if pd.notna(row['total_value']) else 0,
+                    'avg_price': float(row['avg_price']) if pd.notna(row['avg_price']) else 0,
+                })
+
+            if category_items:
+                result['categories'][category] = {
+                    'rv_types': rv_types,
+                    'total_sold': int(cat_df['stock_number'].count()),
+                    'avg_days_to_sell': float(cat_df['days_to_sell'].mean()) if 'days_to_sell' in cat_df.columns else None,
+                    'top_floorplans': category_items
+                }
+
+        return result
+
+    def _empty_top_floorplans_response(self) -> Dict[str, Any]:
+        """Return empty top floorplans response."""
+        return {
+            'total_sold': 0,
+            'categories': {}
         }
