@@ -3,8 +3,13 @@ FastAPI backend for Fabric GraphQL API queries.
 Serves inventory data from gold tables to the React frontend.
 
 Run with: uvicorn main:app --reload --port 8000
+
+Environment variables:
+    USE_DELTALAKE=true  - Use Delta Lake direct access (50s startup)
+    USE_DELTALAKE=false - Use GraphQL API (20-25 min startup, default)
 """
 
+import os
 from datetime import datetime
 from typing import Optional, List
 from collections import defaultdict
@@ -14,6 +19,12 @@ from azure.identity import DefaultAzureCredential
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+# Check if we should use Delta Lake instead of GraphQL
+USE_DELTALAKE = os.getenv('USE_DELTALAKE', 'false').lower() == 'true'
+
+if USE_DELTALAKE:
+    from deltalake_adapter import DeltaLakeClient
 
 # Configuration
 WORKSPACE_ID = "9c727ce4-5f7e-4008-b31e-f3e3bd8e0adc"
@@ -2039,27 +2050,46 @@ class AggregatedSummaryResponse(BaseModel):
     by_county: Optional[List[AggregationItem]] = None
 
 
-# Initialize clients
-client = FabricGraphQLClient()
+# Initialize clients based on environment variable
+if USE_DELTALAKE:
+    print("=" * 60)
+    print("USING DELTA LAKE DIRECT ACCESS")
+    print("  Expected startup time: ~50 seconds")
+    print("  Full 187K inventory (no limits)")
+    print("=" * 60)
+    client = DeltaLakeClient()
+else:
+    print("=" * 60)
+    print("USING GRAPHQL API")
+    print("  Expected startup time: 20-25 minutes")
+    print("  Set USE_DELTALAKE=true for faster startup")
+    print("=" * 60)
+    client = FabricGraphQLClient()
 
 
 @app.on_event("startup")
 async def startup_event():
     """Pre-load all caches at server startup for instant responses."""
-    print("Server starting - pre-loading caches...")
-    client.load_cache()  # Products + Dealers dimension tables
-    client.load_inventory_cache()  # Inventory with joined dimensions
-    client.build_aggregations_cache()  # Pre-computed aggregations (no filters)
-    client.build_filtered_aggregations_cache()  # Pre-computed aggregations for common filters
-    print("Server ready - all caches loaded!")
+    if USE_DELTALAKE:
+        print("Server starting - loading Delta Lake cache...")
+        client.load_inventory_cache()  # Delta Lake loads everything in one step
+        print("Server ready - Delta Lake cache loaded!")
+    else:
+        print("Server starting - pre-loading GraphQL caches...")
+        client.load_cache()  # Products + Dealers dimension tables
+        client.load_inventory_cache()  # Inventory with joined dimensions
+        client.build_aggregations_cache()  # Pre-computed aggregations (no filters)
+        client.build_filtered_aggregations_cache()  # Pre-computed aggregations for common filters
+        print("Server ready - all GraphQL caches loaded!")
 
 
 @app.get("/")
 async def root():
     return {
         "message": "RV Market Intelligence API",
-        "version": "4.0.0",
-        "source": "Fabric GraphQL API - Gold Tables",
+        "version": "5.0.0",
+        "source": "Delta Lake Direct Access" if USE_DELTALAKE else "Fabric GraphQL API",
+        "mode": "deltalake" if USE_DELTALAKE else "graphql",
         "docs": "/docs",
         "endpoints": ["/dealers", "/inventory", "/inventory/summary", "/inventory/aggregated", "/inventory/totals", "/filters"]
     }

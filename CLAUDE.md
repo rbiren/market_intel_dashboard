@@ -3,14 +3,19 @@
 ## Quick Start
 
 ```bash
-# Terminal 1: FastAPI backend (wait for "Server ready!" before using)
+# Terminal 1: FastAPI backend - Choose one:
+
+# Option A: Delta Lake (FAST - ~50 seconds, full 187K inventory)
+cd api && USE_DELTALAKE=true python -m uvicorn main:app --port 8000
+
+# Option B: GraphQL (SLOW - 20-25 min, 100K limit)
 cd api && python -m uvicorn main:app --port 8000
 
 # Terminal 2: React frontend
 cd mobile-app && npm run dev -- --port 5175
 ```
 
-**Open http://localhost:5175** (backend startup takes ~20-25 min to build all caches including RV type filters)
+**Open http://localhost:5175**
 
 **Routes:**
 - `/` or `/sales/*` - Sales Platform (main entry point)
@@ -20,46 +25,54 @@ cd mobile-app && npm run dev -- --port 5175
 
 ## Architecture (Updated January 2025)
 
-### The Caching Strategy
+### Two Backend Modes
 
-All data is loaded into RAM at server startup for **instant responses**:
+| Mode | Startup | Memory | Inventory | How to Enable |
+|------|---------|--------|-----------|---------------|
+| **Delta Lake** | ~50 sec | ~1.1 GB | Full 187K | `USE_DELTALAKE=true` |
+| **GraphQL** | 20-25 min | ~400 MB | 100K limit | Default (no env var) |
 
-| Cache | Records | Purpose |
-|-------|---------|---------|
-| `_products_cache` | ~30,000 | Product model details (rv_type, manufacturer, model) keyed by `dim_product_model_skey` |
-| `_floorplan_cache` | ~100,000 | Floorplan data keyed by `dim_product_skey` |
-| `_dealers_cache` | 10,000 | Dealer details (dealer_group, state, dealership, region, city, county) |
-| `_inventory_cache` | 100,000 | Full inventory with joined product/dealer data |
-| `_aggregations_cache` | Pre-computed | 186,610 units aggregated by rv_type, dealer, state, region, city, condition |
-| `_filtered_aggregations_cache` | Pre-computed | Condition filters (NEW/USED) + RV type filters (8 types) |
+### Delta Lake Mode (Recommended)
 
-### Why This Approach?
+Reads Delta tables directly from Fabric Lakehouse using `deltalake` library:
 
-1. **GraphQL has no JOINs** - Fabric GraphQL exposes tables separately; relationships must be configured manually in Fabric portal (not done)
-2. **100k record limit** - Fabric GraphQL `first` param maxes at 100,000
-3. **groupBy works on full data** - Native `groupBy` aggregations scan ALL records (186,610), not just fetched ones
-4. **Azure credentials are flaky** - Live API calls intermittently fail; caching eliminates this
+```
+Server Startup (~50 seconds)
+  └─ build_cache()
+       ├─ dim_product_model (29K)     → products cache
+       ├─ dim_product (154K)          → floorplans cache
+       ├─ dim_dealership (12K)        → dealers cache
+       ├─ dim_date (9K)               → dates cache
+       ├─ fact_inventory_current (187K) → inventory + pandas JOINs
+       ├─ fact_inventory_sales (562K)   → sales data with days_to_sell
+       └─ Build aggregations in memory
+```
 
-### Data Flow
+**Pros:** 10x faster startup, full data (no 100K limit), includes sales velocity data
+**Requires:** `az login` for authentication
+
+### GraphQL Mode (Legacy)
+
+Uses Fabric GraphQL API with multiple cache-building passes:
 
 ```
 Server Startup (~20-25 min)
-  ├─ load_cache()                      → Fetch product models + floorplans + dealers (~1 min)
-  │    ├─ dim_product_models (30k) → _products_cache (rv_type, manufacturer, model)
-  │    ├─ dim_products (100k)      → _floorplan_cache (floorplan)
-  │    └─ dim_dealerships (10k)    → _dealers_cache (dealer_group, state, region, city, county)
-  ├─ load_inventory_cache()            → Fetch 100k inventory + manual joins (~6 min)
-  ├─ build_aggregations_cache()        → Run groupBy queries for full 186k aggregations (~4 min)
-  └─ build_filtered_aggregations_cache() → Pre-compute filters:
-       ├─ Condition: NEW, USED (~5 min)
-       └─ RV Types: 8 types (~8 min)
-
-Request Time (instant)
-  ├─ /filters        → Read from _products_cache + _dealers_cache (includes regions, cities)
-  ├─ /dealers        → Read from _dealers_cache
-  ├─ /inventory      → Filter _inventory_cache in memory
-  └─ /aggregated     → Return _aggregations_cache or _filtered_aggregations_cache
+  ├─ load_cache()                      → Fetch dimensions (~1 min)
+  ├─ load_inventory_cache()            → Fetch 100k inventory (~6 min)
+  ├─ build_aggregations_cache()        → groupBy queries (~4 min)
+  └─ build_filtered_aggregations_cache() → Pre-compute filters (~12 min)
 ```
+
+**Pros:** Battle-tested, lower memory usage
+**Cons:** Slow startup, 100K inventory limit, complex auth
+
+### Request Time (Both Modes)
+
+All requests are instant (in-memory):
+- `/filters` → Filter options from dimension caches
+- `/dealers` → Dealer list from cache
+- `/inventory` → Filter inventory in memory
+- `/aggregated` → Pre-computed or on-demand aggregations
 
 ---
 
@@ -68,7 +81,11 @@ Request Time (instant)
 ### Backend
 | File | Purpose |
 |------|---------|
-| `api/main.py` | **THE** backend - all caching logic, GraphQL queries, endpoints |
+| `api/main.py` | FastAPI backend - endpoints, GraphQL client, env var switch |
+| `api/deltalake_adapter.py` | Delta Lake client (same interface as GraphQL client) |
+| `parquet_test/deltalake_cache.py` | Delta Lake cache builder with pandas JOINs |
+| `parquet_test/gold_table_reader.py` | Low-level Delta table reader |
+| `parquet_test/SCHEMA.md` | Complete schema for all 13 gold tables |
 
 ### Sales Platform (Main App)
 | File | Purpose |
