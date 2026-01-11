@@ -143,7 +143,10 @@
       "Bash(C:UsersrbirenAppDataLocalanaconda3python.exe -m uvicorn main:app --port 8000)",
       "Bash(cmd.exe /c \"cd /d C:\\\\Users\\\\rbiren\\\\Desktop\\\\fabric_data_test\\\\api && set USE_DELTALAKE=true && C:\\\\Users\\\\rbiren\\\\AppData\\\\Local\\\\anaconda3\\\\python.exe -m uvicorn main:app --port 8000\")",
       "Bash(cmd.exe /c \"C:\\\\Users\\\\rbiren\\\\Desktop\\\\fabric_data_test\\\\api\\\\start_server.bat\")",
-      "Bash(cmd.exe /c \"cd /d C:\\\\Users\\\\rbiren\\\\Desktop\\\\fabric_data_test\\\\api && start_server.bat\")"
+      "Bash(cmd.exe /c \"cd /d C:\\\\Users\\\\rbiren\\\\Desktop\\\\fabric_data_test\\\\api && start_server.bat\")",
+      "Bash(time curl -s \"http://localhost:8000/inventory/sales-velocity\")",
+      "Bash(time curl -s \"http://localhost:8000/inventory/sales-velocity?rv_type=FIFTH%20WHEEL\")",
+      "Bash(time curl:*)"
     ]
   }
 }
