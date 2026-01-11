@@ -32,6 +32,7 @@ class DeltaLakeClient:
     _cache = None
     _cache_loaded = False
     _aggregations_cache = None  # Cache for unfiltered aggregations
+    _sales_velocity_cache = None  # Cache for unfiltered sales velocity
 
     def __new__(cls):
         if cls._instance is None:
@@ -59,6 +60,13 @@ class DeltaLakeClient:
         self._aggregations_cache = self._compute_aggregations_no_filter()
         agg_elapsed = (datetime.now() - agg_start).total_seconds()
         print(f"Aggregations pre-computed in {agg_elapsed:.1f} seconds")
+
+        # Pre-compute unfiltered sales velocity for instant responses
+        print("Pre-computing sales velocity...")
+        sales_start = datetime.now()
+        self._sales_velocity_cache = self._compute_sales_velocity_no_filter()
+        sales_elapsed = (datetime.now() - sales_start).total_seconds()
+        print(f"Sales velocity pre-computed in {sales_elapsed:.1f} seconds")
 
         self._cache_loaded = True
 
@@ -285,6 +293,109 @@ class DeltaLakeClient:
             result['sales_velocity'] = {'total_sold': 0, 'avg_days_to_sell': None, 'avg_sale_price': None, 'by_rv_type': [], 'by_condition': []}
 
         return result
+
+    def _compute_sales_velocity_no_filter(self) -> Dict[str, Any]:
+        """Pre-compute full sales velocity for unfiltered requests (called once at startup)."""
+        sales = self._cache.get('sales')
+        if sales is None:
+            return self._empty_sales_velocity_response()
+
+        df = sales
+
+        return {
+            'total_sold': len(df),
+            'avg_days_to_sell': float(df['days_to_sell'].mean()) if 'days_to_sell' in df.columns else None,
+            'median_days_to_sell': float(df['days_to_sell'].median()) if 'days_to_sell' in df.columns else None,
+            'min_days_to_sell': int(df['days_to_sell'].min()) if 'days_to_sell' in df.columns else None,
+            'max_days_to_sell': int(df['days_to_sell'].max()) if 'days_to_sell' in df.columns else None,
+            'avg_sale_price': float(df['sale_price'].mean()) if 'sale_price' in df.columns else None,
+            'total_sales_value': float(df['sale_price'].sum()) if 'sale_price' in df.columns else None,
+            'by_rv_type': self._aggregate_sales_by_fast_v2(df, 'rv_type'),
+            'by_condition': self._aggregate_sales_by_fast_v2(df, 'condition'),
+            'by_dealer_group': self._aggregate_sales_by_fast_v2(df, 'dealer_group'),
+            'by_manufacturer': self._aggregate_sales_by_fast_v2(df, 'manufacturer'),
+            'by_state': self._aggregate_sales_by_fast_v2(df, 'state'),
+            'by_region': self._aggregate_sales_by_fast_v2(df, 'region') if 'region' in df.columns else [],
+            'by_month': self._aggregate_sales_by_month_fast(df) if 'calendar_date' in df.columns else [],
+        }
+
+    def _aggregate_sales_by_fast_v2(self, df: pd.DataFrame, column: str, limit: int = None) -> List[Dict]:
+        """Aggregate sales data by a column - optimized version using to_dict."""
+        if column not in df.columns:
+            return []
+
+        agg_dict = {'stock_number': 'count'}
+        if 'days_to_sell' in df.columns:
+            agg_dict['days_to_sell'] = 'mean'
+        if 'sale_price' in df.columns:
+            agg_dict['sale_price'] = ['sum', 'mean']
+
+        grouped = df.groupby(column).agg(agg_dict).reset_index()
+
+        # Flatten column names
+        if 'sale_price' in agg_dict:
+            grouped.columns = [column, 'sold_count', 'avg_days_to_sell', 'total_value', 'avg_price']
+        elif 'days_to_sell' in agg_dict:
+            grouped.columns = [column, 'sold_count', 'avg_days_to_sell']
+        else:
+            grouped.columns = [column, 'sold_count']
+
+        grouped = grouped.sort_values('sold_count', ascending=False)
+
+        if limit:
+            grouped = grouped.head(limit)
+
+        # Convert to list of dicts - much faster than iterrows
+        grouped['name'] = grouped[column].fillna('Unknown').astype(str)
+        grouped['sold_count'] = grouped['sold_count'].astype(int)
+
+        cols_to_keep = ['name', 'sold_count']
+        if 'avg_days_to_sell' in grouped.columns:
+            cols_to_keep.append('avg_days_to_sell')
+        if 'total_value' in grouped.columns:
+            grouped['total_value'] = grouped['total_value'].fillna(0)
+            cols_to_keep.append('total_value')
+        if 'avg_price' in grouped.columns:
+            grouped['avg_price'] = grouped['avg_price'].fillna(0)
+            cols_to_keep.append('avg_price')
+
+        return grouped[cols_to_keep].to_dict('records')
+
+    def _aggregate_sales_by_month_fast(self, df: pd.DataFrame) -> List[Dict]:
+        """Aggregate sales by month for trend analysis - optimized version."""
+        if 'month_year' not in df.columns:
+            return []
+
+        agg_dict = {'stock_number': 'count'}
+        if 'days_to_sell' in df.columns:
+            agg_dict['days_to_sell'] = 'mean'
+        if 'sale_price' in df.columns:
+            agg_dict['sale_price'] = 'sum'
+
+        grouped = df.groupby('month_year').agg(agg_dict).reset_index()
+
+        if 'sale_price' in agg_dict:
+            grouped.columns = ['month', 'sold_count', 'avg_days_to_sell', 'total_value']
+        elif 'days_to_sell' in agg_dict:
+            grouped.columns = ['month', 'sold_count', 'avg_days_to_sell']
+        else:
+            grouped.columns = ['month', 'sold_count']
+
+        # Sort by month
+        grouped = grouped.sort_values('month')
+
+        # Convert to list of dicts - much faster than iterrows
+        grouped['name'] = grouped['month'].fillna('Unknown').astype(str)
+        grouped['sold_count'] = grouped['sold_count'].astype(int)
+
+        cols_to_keep = ['name', 'sold_count']
+        if 'avg_days_to_sell' in grouped.columns:
+            cols_to_keep.append('avg_days_to_sell')
+        if 'total_value' in grouped.columns:
+            grouped['total_value'] = grouped['total_value'].fillna(0)
+            cols_to_keep.append('total_value')
+
+        return grouped[cols_to_keep].to_dict('records')
 
     def _build_aggregation_response(
         self,
@@ -656,40 +767,66 @@ class DeltaLakeClient:
 
         Returns detailed velocity breakdown by multiple dimensions.
         """
+        # Return cached result if no filters applied (instant response)
+        if all(f is None for f in [rv_type, dealer_group, manufacturer, condition, state, model, floorplan, start_date, end_date]):
+            if self._sales_velocity_cache:
+                return self._sales_velocity_cache
+
         sales = self._cache.get('sales')
         if sales is None:
             return self._empty_sales_velocity_response()
 
-        df = sales.copy()
+        # Use mask-based filtering instead of chained .copy()
+        has_filters = any(f is not None for f in [rv_type, dealer_group, manufacturer, condition, state, model, floorplan, start_date, end_date])
 
-        # Apply dimension filters (supports comma-separated multi-values)
-        df = self._apply_filter(df, 'rv_type', rv_type)
-        df = self._apply_filter(df, 'dealer_group', dealer_group)
-        df = self._apply_filter(df, 'manufacturer', manufacturer)
-        df = self._apply_filter(df, 'condition', condition)
-        df = self._apply_filter(df, 'model', model)
-        df = self._apply_filter(df, 'floorplan', floorplan)
-        df = self._apply_filter(df, 'state', state)
+        if has_filters:
+            mask = pd.Series(True, index=sales.index)
 
-        # Apply date filters if provided
-        if 'calendar_date' in df.columns:
-            if start_date:
-                try:
-                    start_dt = pd.to_datetime(start_date)
-                    df = df[pd.to_datetime(df['calendar_date']) >= start_dt]
-                except Exception:
-                    pass
-            if end_date:
-                try:
-                    end_dt = pd.to_datetime(end_date)
-                    df = df[pd.to_datetime(df['calendar_date']) <= end_dt]
-                except Exception:
-                    pass
+            if rv_type:
+                values = self._parse_multi_value(rv_type)
+                mask &= sales['rv_type'].isin(values) if len(values) > 1 else (sales['rv_type'] == values[0])
+            if dealer_group:
+                values = self._parse_multi_value(dealer_group)
+                mask &= sales['dealer_group'].isin(values) if len(values) > 1 else (sales['dealer_group'] == values[0])
+            if manufacturer:
+                values = self._parse_multi_value(manufacturer)
+                mask &= sales['manufacturer'].isin(values) if len(values) > 1 else (sales['manufacturer'] == values[0])
+            if condition:
+                values = self._parse_multi_value(condition)
+                mask &= sales['condition'].isin(values) if len(values) > 1 else (sales['condition'] == values[0])
+            if state:
+                values = self._parse_multi_value(state)
+                mask &= sales['state'].isin(values) if len(values) > 1 else (sales['state'] == values[0])
+            if model and 'model' in sales.columns:
+                values = self._parse_multi_value(model)
+                mask &= sales['model'].isin(values) if len(values) > 1 else (sales['model'] == values[0])
+            if floorplan and 'floorplan' in sales.columns:
+                values = self._parse_multi_value(floorplan)
+                mask &= sales['floorplan'].isin(values) if len(values) > 1 else (sales['floorplan'] == values[0])
+
+            # Apply date filters
+            if 'calendar_date' in sales.columns:
+                if start_date:
+                    try:
+                        start_dt = pd.to_datetime(start_date)
+                        mask &= pd.to_datetime(sales['calendar_date']) >= start_dt
+                    except Exception:
+                        pass
+                if end_date:
+                    try:
+                        end_dt = pd.to_datetime(end_date)
+                        mask &= pd.to_datetime(sales['calendar_date']) <= end_dt
+                    except Exception:
+                        pass
+
+            df = sales[mask]
+        else:
+            df = sales
 
         if len(df) == 0:
             return self._empty_sales_velocity_response()
 
-        # Build comprehensive response
+        # Build comprehensive response using optimized aggregation methods
         return {
             'total_sold': len(df),
             'avg_days_to_sell': float(df['days_to_sell'].mean()) if 'days_to_sell' in df.columns else None,
@@ -698,13 +835,13 @@ class DeltaLakeClient:
             'max_days_to_sell': int(df['days_to_sell'].max()) if 'days_to_sell' in df.columns else None,
             'avg_sale_price': float(df['sale_price'].mean()) if 'sale_price' in df.columns else None,
             'total_sales_value': float(df['sale_price'].sum()) if 'sale_price' in df.columns else None,
-            'by_rv_type': self._aggregate_sales_by(df, 'rv_type'),
-            'by_condition': self._aggregate_sales_by(df, 'condition'),
-            'by_dealer_group': self._aggregate_sales_by(df, 'dealer_group'),  # No limit - return all
-            'by_manufacturer': self._aggregate_sales_by(df, 'manufacturer'),  # No limit - return all
-            'by_state': self._aggregate_sales_by(df, 'state'),  # No limit - return all
-            'by_region': self._aggregate_sales_by(df, 'region') if 'region' in df.columns else [],
-            'by_month': self._aggregate_sales_by_month(df) if 'calendar_date' in df.columns else [],
+            'by_rv_type': self._aggregate_sales_by_fast_v2(df, 'rv_type'),
+            'by_condition': self._aggregate_sales_by_fast_v2(df, 'condition'),
+            'by_dealer_group': self._aggregate_sales_by_fast_v2(df, 'dealer_group'),
+            'by_manufacturer': self._aggregate_sales_by_fast_v2(df, 'manufacturer'),
+            'by_state': self._aggregate_sales_by_fast_v2(df, 'state'),
+            'by_region': self._aggregate_sales_by_fast_v2(df, 'region') if 'region' in df.columns else [],
+            'by_month': self._aggregate_sales_by_month_fast(df) if 'calendar_date' in df.columns else [],
         }
 
     def _aggregate_sales_by(self, df: pd.DataFrame, column: str, limit: int = None) -> List[Dict]:
@@ -836,22 +973,26 @@ class DeltaLakeClient:
         if sales is None or 'floorplan' not in sales.columns:
             return self._empty_top_floorplans_response()
 
-        df = sales.copy()
+        # Use mask-based filtering for date range
+        has_date_filters = start_date is not None or end_date is not None
 
-        # Apply date filters if provided
-        if 'calendar_date' in df.columns:
+        if has_date_filters and 'calendar_date' in sales.columns:
+            mask = pd.Series(True, index=sales.index)
             if start_date:
                 try:
                     start_dt = pd.to_datetime(start_date)
-                    df = df[pd.to_datetime(df['calendar_date']) >= start_dt]
+                    mask &= pd.to_datetime(sales['calendar_date']) >= start_dt
                 except Exception:
                     pass
             if end_date:
                 try:
                     end_dt = pd.to_datetime(end_date)
-                    df = df[pd.to_datetime(df['calendar_date']) <= end_dt]
+                    mask &= pd.to_datetime(sales['calendar_date']) <= end_dt
                 except Exception:
                     pass
+            df = sales[mask]
+        else:
+            df = sales
 
         if len(df) == 0:
             return self._empty_top_floorplans_response()
@@ -901,17 +1042,14 @@ class DeltaLakeClient:
             floorplan_stats.columns = ['floorplan', 'manufacturer', 'model', 'sold_count', 'avg_days_to_sell', 'total_value', 'avg_price']
             floorplan_stats = floorplan_stats.sort_values('sold_count', ascending=False).head(limit)
 
-            category_items = []
-            for _, row in floorplan_stats.iterrows():
-                category_items.append({
-                    'floorplan': str(row['floorplan']) if pd.notna(row['floorplan']) else 'Unknown',
-                    'manufacturer': str(row['manufacturer']) if pd.notna(row['manufacturer']) else 'Unknown',
-                    'model': str(row['model']) if pd.notna(row['model']) else 'Unknown',
-                    'sold_count': int(row['sold_count']),
-                    'avg_days_to_sell': float(row['avg_days_to_sell']) if pd.notna(row['avg_days_to_sell']) else None,
-                    'total_value': float(row['total_value']) if pd.notna(row['total_value']) else 0,
-                    'avg_price': float(row['avg_price']) if pd.notna(row['avg_price']) else 0,
-                })
+            # Convert to list of dicts - much faster than iterrows
+            floorplan_stats['floorplan'] = floorplan_stats['floorplan'].fillna('Unknown').astype(str)
+            floorplan_stats['manufacturer'] = floorplan_stats['manufacturer'].fillna('Unknown').astype(str)
+            floorplan_stats['model'] = floorplan_stats['model'].fillna('Unknown').astype(str)
+            floorplan_stats['sold_count'] = floorplan_stats['sold_count'].astype(int)
+            floorplan_stats['total_value'] = floorplan_stats['total_value'].fillna(0)
+            floorplan_stats['avg_price'] = floorplan_stats['avg_price'].fillna(0)
+            category_items = floorplan_stats[['floorplan', 'manufacturer', 'model', 'sold_count', 'avg_days_to_sell', 'total_value', 'avg_price']].to_dict('records')
 
             if category_items:
                 # Use 'floorplans' key to match frontend TypeScript interface
