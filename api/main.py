@@ -2454,6 +2454,8 @@ async def get_aggregated_summaries(
     manufacturer: Optional[str] = Query(default=None, description="Filter by manufacturer/brand"),
     condition: Optional[str] = Query(default=None, description="Filter by condition"),
     state: Optional[str] = Query(default=None, description="Filter by state"),
+    model: Optional[str] = Query(default=None, description="Filter by model"),
+    floorplan: Optional[str] = Query(default=None, description="Filter by floorplan"),
     min_price: Optional[float] = Query(default=None, description="Minimum price"),
     max_price: Optional[float] = Query(default=None, description="Maximum price")
 ):
@@ -2465,7 +2467,7 @@ async def get_aggregated_summaries(
     """
     try:
         # If no filters, use FAST native GraphQL aggregations
-        has_filters = any([rv_class, dealer_group, manufacturer, condition, state, min_price, max_price])
+        has_filters = any([rv_class, dealer_group, manufacturer, condition, state, model, floorplan, min_price, max_price])
 
         if not has_filters:
             # FAST PATH: Return cached aggregations (instant!)
@@ -2501,10 +2503,112 @@ async def get_aggregated_summaries(
             manufacturer=manufacturer,
             condition=condition,
             state=state,
+            model=model,
+            floorplan=floorplan,
             min_price=min_price,
             max_price=max_price
         )
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# SALES VELOCITY ENDPOINTS
+# =============================================================================
+
+@app.get("/inventory/sales-velocity")
+async def get_sales_velocity(
+    rv_class: Optional[str] = Query(default=None, description="Filter by RV type"),
+    dealer_group: Optional[str] = Query(default=None, description="Filter by dealer group"),
+    manufacturer: Optional[str] = Query(default=None, description="Filter by manufacturer/brand"),
+    condition: Optional[str] = Query(default=None, description="Filter by condition (NEW/USED)"),
+    state: Optional[str] = Query(default=None, description="Filter by state"),
+    model: Optional[str] = Query(default=None, description="Filter by model"),
+    floorplan: Optional[str] = Query(default=None, description="Filter by floorplan"),
+    start_date: Optional[str] = Query(default=None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(default=None, description="End date (YYYY-MM-DD)")
+):
+    """
+    Get sales velocity metrics including days to sell, sales trends, and breakdowns by dimensions.
+
+    Returns comprehensive sales history data:
+    - Total units sold
+    - Average/median/min/max days to sell
+    - Average sale price and total sales value
+    - Breakdowns by RV type, condition, dealer group, manufacturer, state, region
+    - Monthly sales trends
+    """
+    try:
+        # Only Delta Lake mode supports sales velocity
+        if not USE_DELTALAKE:
+            return {
+                "error": "Sales velocity data requires Delta Lake mode (USE_DELTALAKE=true)",
+                "total_sold": 0,
+                "avg_days_to_sell": None,
+            }
+
+        return client.get_sales_velocity_filtered(
+            rv_type=rv_class,
+            dealer_group=dealer_group,
+            manufacturer=manufacturer,
+            condition=condition,
+            state=state,
+            model=model,
+            floorplan=floorplan,
+            start_date=start_date,
+            end_date=end_date
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/inventory/sales-date-range")
+async def get_sales_date_range():
+    """
+    Get the available date range for sales data.
+
+    Returns the earliest and latest dates in the sales history,
+    useful for populating date picker UI components.
+    """
+    try:
+        if not USE_DELTALAKE:
+            return {"min_date": None, "max_date": None}
+
+        return client.get_date_range()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/inventory/top-floorplans")
+async def get_top_floorplans(
+    start_date: Optional[str] = Query(default=None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(default=None, description="End date (YYYY-MM-DD)"),
+    limit: int = Query(default=10, description="Number of top floorplans per category")
+):
+    """
+    Get top selling floorplans by RV type category.
+
+    Returns top floorplans for each RV type category:
+    - CLASS A, CLASS B, CLASS C (Motorized)
+    - FIFTH WHEEL, TRAVEL TRAILER (Towable)
+    - OTHER categories
+
+    Each floorplan includes sold count, avg days to sell, and avg sale price.
+    """
+    try:
+        if not USE_DELTALAKE:
+            return {
+                "error": "Top floorplans data requires Delta Lake mode (USE_DELTALAKE=true)",
+                "total_sold": 0,
+                "categories": {}
+            }
+
+        return client.get_top_floorplans(
+            start_date=start_date,
+            end_date=end_date,
+            limit=limit
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

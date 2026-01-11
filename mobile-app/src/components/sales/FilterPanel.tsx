@@ -7,7 +7,7 @@
 
 import { useSalesContext } from '../../context/SalesContext'
 import type { SalesFilters } from '../../context/SalesContext'
-import { useFilterOptions } from '../../hooks/useSalesData'
+import { useFilterOptions, useSalesDateRange } from '../../hooks/useSalesData'
 
 interface FilterPanelProps {
   mode?: 'panel' | 'inline'
@@ -17,6 +17,7 @@ interface FilterPanelProps {
 export function FilterPanel({ mode = 'inline', onClose }: FilterPanelProps) {
   const { theme, filters, updateFilter, clearFilters, activeFilterCount } = useSalesContext()
   const { data: filterOptions, loading } = useFilterOptions()
+  const { data: dateRange } = useSalesDateRange()
   const isDark = theme === 'dark'
 
   const selectClasses = `
@@ -162,6 +163,22 @@ export function FilterPanel({ mode = 'inline', onClose }: FilterPanelProps) {
             placeholder="All Manufacturers"
           />
 
+          {/* Model */}
+          <FilterSelect
+            label="Model"
+            filterKey="model"
+            options={(filterOptions?.models || []).slice(0, 50)}
+            placeholder="All Models"
+          />
+
+          {/* Floorplan */}
+          <FilterSelect
+            label="Floorplan"
+            filterKey="floorplan"
+            options={(filterOptions?.floorplans || []).slice(0, 50)}
+            placeholder="All Floorplans"
+          />
+
           {/* Price Range */}
           <div>
             <label className={labelClasses}>Price Range</label>
@@ -181,6 +198,40 @@ export function FilterPanel({ mode = 'inline', onClose }: FilterPanelProps) {
                 className={selectClasses}
               />
             </div>
+          </div>
+
+          {/* Sales Date Range */}
+          <div>
+            <label className={labelClasses}>Sales Date Range</label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <input
+                  type="date"
+                  placeholder="Start"
+                  value={filters.startDate || ''}
+                  min={dateRange?.min_date || undefined}
+                  max={filters.endDate || dateRange?.max_date || undefined}
+                  onChange={(e) => updateFilter('startDate', e.target.value || undefined)}
+                  className={selectClasses}
+                />
+              </div>
+              <div>
+                <input
+                  type="date"
+                  placeholder="End"
+                  value={filters.endDate || ''}
+                  min={filters.startDate || dateRange?.min_date || undefined}
+                  max={dateRange?.max_date || undefined}
+                  onChange={(e) => updateFilter('endDate', e.target.value || undefined)}
+                  className={selectClasses}
+                />
+              </div>
+            </div>
+            {dateRange?.min_date && dateRange?.max_date && (
+              <p className={`text-xs mt-1 ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+                Data available: {dateRange.min_date} to {dateRange.max_date}
+              </p>
+            )}
           </div>
         </>
       )}

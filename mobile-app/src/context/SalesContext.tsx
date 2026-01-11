@@ -25,9 +25,13 @@ export interface SalesFilters {
   rvType?: string
   condition?: string
   manufacturer?: string
+  model?: string
+  floorplan?: string
   minPrice?: number
   maxPrice?: number
   searchQuery?: string
+  startDate?: string  // YYYY-MM-DD format
+  endDate?: string    // YYYY-MM-DD format
 }
 
 export interface SelectedDealer {

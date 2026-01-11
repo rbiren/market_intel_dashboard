@@ -65,6 +65,44 @@ export interface AggregationItem {
   avg_days_on_lot?: number
 }
 
+export interface SalesVelocityItem {
+  name: string
+  sold_count: number
+  avg_days_to_sell?: number
+  total_value?: number
+  avg_price?: number
+}
+
+export interface SalesVelocitySummary {
+  total_sold: number
+  avg_days_to_sell?: number
+  avg_sale_price?: number
+  by_rv_type: SalesVelocityItem[]
+  by_condition: SalesVelocityItem[]
+}
+
+export interface SalesVelocityData {
+  total_sold: number
+  avg_days_to_sell?: number
+  median_days_to_sell?: number
+  min_days_to_sell?: number
+  max_days_to_sell?: number
+  avg_sale_price?: number
+  total_sales_value?: number
+  by_rv_type: SalesVelocityItem[]
+  by_condition: SalesVelocityItem[]
+  by_dealer_group: SalesVelocityItem[]
+  by_manufacturer: SalesVelocityItem[]
+  by_state: SalesVelocityItem[]
+  by_region: SalesVelocityItem[]
+  by_month: SalesVelocityItem[]
+}
+
+export interface DateRange {
+  min_date: string | null
+  max_date: string | null
+}
+
 export interface AggregatedData {
   total_units: number
   total_value: number
@@ -78,6 +116,9 @@ export interface AggregatedData {
   by_state: AggregationItem[]
   by_region?: AggregationItem[]
   by_city?: AggregationItem[]
+  // Sales velocity data (from sales history)
+  avg_days_to_sell?: number
+  sales_velocity?: SalesVelocitySummary
 }
 
 export interface FilterOptionsData {
@@ -86,8 +127,33 @@ export interface FilterOptionsData {
   conditions: string[]
   dealer_groups: string[]
   manufacturers: string[]
+  models: string[]
+  floorplans: string[]
   regions?: string[]
   cities?: string[]
+}
+
+export interface TopFloorplanItem {
+  floorplan: string
+  manufacturer: string
+  model: string
+  sold_count: number
+  avg_days_to_sell?: number
+  avg_sale_price?: number
+  total_sales_value?: number
+}
+
+export interface TopFloorplansByCategory {
+  category: string
+  floorplans: TopFloorplanItem[]
+}
+
+export interface TopFloorplansData {
+  categories: TopFloorplansByCategory[]
+  date_range: {
+    start_date: string | null
+    end_date: string | null
+  }
 }
 
 // Build URL params from filters
@@ -96,10 +162,14 @@ function buildFilterParams(filters: SalesFilters): URLSearchParams {
   if (filters.rvType) params.append('rv_class', filters.rvType)
   if (filters.dealerGroup) params.append('dealer_group', filters.dealerGroup)
   if (filters.manufacturer) params.append('manufacturer', filters.manufacturer)
+  if (filters.model) params.append('model', filters.model)
+  if (filters.floorplan) params.append('floorplan', filters.floorplan)
   if (filters.condition) params.append('condition', filters.condition)
   if (filters.state) params.append('state', filters.state)
   if (filters.minPrice !== undefined) params.append('min_price', filters.minPrice.toString())
   if (filters.maxPrice !== undefined) params.append('max_price', filters.maxPrice.toString())
+  if (filters.startDate) params.append('start_date', filters.startDate)
+  if (filters.endDate) params.append('end_date', filters.endDate)
   return params
 }
 
@@ -426,4 +496,135 @@ export function useProductCatalog(filters: { rvType?: string; manufacturer?: str
   }, [filters.rvType, filters.manufacturer])
 
   return { products, loading: false, error: null }
+}
+
+/**
+ * Hook for fetching sales velocity data with filters
+ */
+export function useSalesVelocity(filters: SalesFilters = {}) {
+  const [data, setData] = useState<SalesVelocityData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const params = buildFilterParams(filters)
+      const response = await fetch(`${API_BASE}/inventory/sales-velocity?${params.toString()}`)
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const result = await response.json()
+      setData(result)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch sales velocity data')
+    } finally {
+      setLoading(false)
+    }
+  }, [filters])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  return { data, loading, error, refetch: fetchData }
+}
+
+/**
+ * Hook for fetching available sales date range
+ */
+export function useSalesDateRange() {
+  const [data, setData] = useState<DateRange | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchDateRange() {
+      try {
+        const response = await fetch(`${API_BASE}/inventory/sales-date-range`)
+        if (!response.ok) throw new Error(`API error: ${response.status}`)
+        const result = await response.json()
+        setData(result)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch date range')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchDateRange()
+  }, [])
+
+  return { data, loading, error }
+}
+
+/**
+ * Hook for sales velocity statistics derived from velocity data
+ */
+export function useSalesVelocityStats(filters: SalesFilters = {}) {
+  const { data: velocityData, loading, error } = useSalesVelocity(filters)
+
+  const stats = useMemo(() => {
+    if (!velocityData) return null
+
+    return {
+      totalSold: velocityData.total_sold,
+      avgDaysToSell: velocityData.avg_days_to_sell,
+      medianDaysToSell: velocityData.median_days_to_sell,
+      minDaysToSell: velocityData.min_days_to_sell,
+      maxDaysToSell: velocityData.max_days_to_sell,
+      avgSalePrice: velocityData.avg_sale_price,
+      totalSalesValue: velocityData.total_sales_value,
+      topRvTypes: velocityData.by_rv_type?.slice(0, 5) || [],
+      topDealerGroups: velocityData.by_dealer_group?.slice(0, 10) || [],
+      topManufacturers: velocityData.by_manufacturer?.slice(0, 10) || [],
+      byCondition: velocityData.by_condition || [],
+      monthlyTrend: velocityData.by_month || [],
+    }
+  }, [velocityData])
+
+  return { stats, loading, error }
+}
+
+/**
+ * Hook for fetching top selling floorplans by RV category
+ */
+export function useTopFloorplans(startDate?: string, endDate?: string, limit: number = 10) {
+  const [data, setData] = useState<TopFloorplansData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const params = new URLSearchParams()
+      if (startDate) params.append('start_date', startDate)
+      if (endDate) params.append('end_date', endDate)
+      params.append('limit', limit.toString())
+
+      const response = await fetch(`${API_BASE}/inventory/top-floorplans?${params.toString()}`)
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const result = await response.json()
+      setData(result)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch top floorplans data')
+    } finally {
+      setLoading(false)
+    }
+  }, [startDate, endDate, limit])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  return { data, loading, error, refetch: fetchData }
 }
