@@ -21,11 +21,11 @@ export interface SalesFilters {
   region?: string
   state?: string
   city?: string
-  dealerGroup?: string
+  dealerGroup?: string | string[]  // Supports multi-select
   rvType?: string
   condition?: string
-  manufacturer?: string
-  model?: string
+  manufacturer?: string | string[]  // Supports multi-select
+  model?: string | string[]  // Supports multi-select
   floorplan?: string
   minPrice?: number
   maxPrice?: number
@@ -60,7 +60,7 @@ interface SalesContextType {
   // Filters
   filters: SalesFilters
   setFilters: (filters: SalesFilters) => void
-  updateFilter: (key: keyof SalesFilters, value: string | number | undefined) => void
+  updateFilter: (key: keyof SalesFilters, value: string | number | string[] | undefined) => void
   clearFilters: () => void
   activeFilterCount: number
 
@@ -123,8 +123,8 @@ export function SalesProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('sales-theme', newTheme)
   }, [])
 
-  // Update single filter
-  const updateFilter = useCallback((key: keyof SalesFilters, value: string | number | undefined) => {
+  // Update single filter (supports arrays for multi-select)
+  const updateFilter = useCallback((key: keyof SalesFilters, value: string | number | string[] | undefined) => {
     setFilters(prev => ({
       ...prev,
       [key]: value
@@ -136,8 +136,12 @@ export function SalesProvider({ children }: { children: ReactNode }) {
     setFilters({})
   }, [])
 
-  // Count active filters
-  const activeFilterCount = Object.values(filters).filter(v => v !== undefined && v !== '').length
+  // Count active filters (arrays count as 1 filter if they have items)
+  const activeFilterCount = Object.values(filters).filter(v => {
+    if (v === undefined || v === '') return false
+    if (Array.isArray(v)) return v.length > 0
+    return true
+  }).length
 
   // Handle window resize
   useEffect(() => {

@@ -145,10 +145,14 @@ export interface TopFloorplanItem {
 
 export interface TopFloorplansByCategory {
   category: string
+  rv_types: string[]
+  total_sold: number
+  avg_days_to_sell: number | null
   floorplans: TopFloorplanItem[]
 }
 
 export interface TopFloorplansData {
+  total_sold: number
   categories: TopFloorplansByCategory[]
   date_range: {
     start_date: string | null
@@ -156,13 +160,25 @@ export interface TopFloorplansData {
   }
 }
 
-// Build URL params from filters
+// Build URL params from filters (supports arrays for multi-select)
 function buildFilterParams(filters: SalesFilters): URLSearchParams {
   const params = new URLSearchParams()
   if (filters.rvType) params.append('rv_class', filters.rvType)
-  if (filters.dealerGroup) params.append('dealer_group', filters.dealerGroup)
-  if (filters.manufacturer) params.append('manufacturer', filters.manufacturer)
-  if (filters.model) params.append('model', filters.model)
+
+  // Handle multi-select filters (arrays become comma-separated)
+  if (filters.dealerGroup) {
+    const value = Array.isArray(filters.dealerGroup) ? filters.dealerGroup.join(',') : filters.dealerGroup
+    if (value) params.append('dealer_group', value)
+  }
+  if (filters.manufacturer) {
+    const value = Array.isArray(filters.manufacturer) ? filters.manufacturer.join(',') : filters.manufacturer
+    if (value) params.append('manufacturer', value)
+  }
+  if (filters.model) {
+    const value = Array.isArray(filters.model) ? filters.model.join(',') : filters.model
+    if (value) params.append('model', value)
+  }
+
   if (filters.floorplan) params.append('floorplan', filters.floorplan)
   if (filters.condition) params.append('condition', filters.condition)
   if (filters.state) params.append('state', filters.state)
@@ -181,12 +197,15 @@ export function useAggregatedData(filters: SalesFilters = {}) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Stabilize filter reference to prevent unnecessary re-fetches
+  const filterKey = useMemo(() => JSON.stringify(filters), [filters])
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
 
     try {
-      const params = buildFilterParams(filters)
+      const params = buildFilterParams(JSON.parse(filterKey))
       const response = await fetch(`${API_BASE}/inventory/aggregated?${params.toString()}`)
 
       if (!response.ok) {
@@ -200,7 +219,7 @@ export function useAggregatedData(filters: SalesFilters = {}) {
     } finally {
       setLoading(false)
     }
-  }, [filters])
+  }, [filterKey])
 
   useEffect(() => {
     fetchData()
@@ -238,6 +257,7 @@ export function useFilterOptions() {
 
 /**
  * Hook for territory statistics derived from aggregated data
+ * Also returns raw aggData to avoid duplicate API calls
  */
 export function useTerritoryStats(filters: SalesFilters = {}) {
   const { data: aggData, loading, error } = useAggregatedData(filters)
@@ -278,7 +298,8 @@ export function useTerritoryStats(filters: SalesFilters = {}) {
     }
   }, [aggData])
 
-  return { stats, loading, error }
+  // Return aggData as well to avoid duplicate API calls in components
+  return { stats, aggData, loading, error }
 }
 
 /**
@@ -506,12 +527,15 @@ export function useSalesVelocity(filters: SalesFilters = {}) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Stabilize filter reference to prevent unnecessary re-fetches
+  const filterKey = useMemo(() => JSON.stringify(filters), [filters])
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
 
     try {
-      const params = buildFilterParams(filters)
+      const params = buildFilterParams(JSON.parse(filterKey))
       const response = await fetch(`${API_BASE}/inventory/sales-velocity?${params.toString()}`)
 
       if (!response.ok) {
@@ -525,7 +549,7 @@ export function useSalesVelocity(filters: SalesFilters = {}) {
     } finally {
       setLoading(false)
     }
-  }, [filters])
+  }, [filterKey])
 
   useEffect(() => {
     fetchData()
@@ -597,15 +621,22 @@ export function useTopFloorplans(startDate?: string, endDate?: string, limit: nu
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Stabilize params to prevent unnecessary re-fetches
+  const paramsKey = useMemo(
+    () => JSON.stringify({ startDate, endDate, limit }),
+    [startDate, endDate, limit]
+  )
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
 
     try {
+      const { startDate: sd, endDate: ed, limit: lim } = JSON.parse(paramsKey)
       const params = new URLSearchParams()
-      if (startDate) params.append('start_date', startDate)
-      if (endDate) params.append('end_date', endDate)
-      params.append('limit', limit.toString())
+      if (sd) params.append('start_date', sd)
+      if (ed) params.append('end_date', ed)
+      params.append('limit', lim.toString())
 
       const response = await fetch(`${API_BASE}/inventory/top-floorplans?${params.toString()}`)
 
@@ -620,7 +651,7 @@ export function useTopFloorplans(startDate?: string, endDate?: string, limit: nu
     } finally {
       setLoading(false)
     }
-  }, [startDate, endDate, limit])
+  }, [paramsKey])
 
   useEffect(() => {
     fetchData()

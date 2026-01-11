@@ -8,46 +8,50 @@ The dashboard can use either of two caching approaches:
 
 | Approach | Startup Time | Memory | Record Limit | Location |
 |----------|--------------|--------|--------------|----------|
-| **GraphQL** (current) | 20-25 min | ~400 MB | 100K inventory | `api/main.py` |
-| **Delta Lake** (new) | 2-3 min | ~500 MB | Full 187K | `parquet_test/deltalake_cache.py` |
+| **Delta Lake** (recommended) | ~50 sec | ~1.1 GB | Full 187K | `api/deltalake_adapter.py` |
+| **GraphQL** (legacy) | 20-25 min | ~400 MB | 100K inventory | `api/main.py` |
 
-### Option 1: GraphQL Cache (Current Production)
+### Option 1: Delta Lake Cache (Recommended - Production)
 
-The existing approach in `api/main.py`:
+Direct Delta table access via `deltalake` library, fully integrated with FastAPI:
+
+```bash
+cd api && USE_DELTALAKE=true python -m uvicorn main:app --port 8000
+
+# Or use the Windows batch file:
+cd api && start_server.bat
+```
+
+**Pros:**
+- ~52 second startup (10x faster than GraphQL)
+- Full 187K inventory (no limits)
+- Includes sales data (562K records)
+- Native pandas JOINs
+- Simpler auth (`az login`)
+- Multi-select filter support (comma-separated values)
+- No aggregation limits (all dealer groups, manufacturers returned)
+- **Pre-computed aggregations** for instant unfiltered responses (~300-400ms)
+
+**Cons:**
+- Higher memory usage (~1.1 GB vs ~400 MB)
+
+### Option 2: GraphQL Cache (Legacy)
+
+The legacy approach in `api/main.py`:
 
 ```bash
 cd api && python -m uvicorn main:app --port 8000
 ```
 
 **Pros:**
-- Battle-tested, production-ready
-- Already integrated with frontend
+- Lower memory usage (~400 MB)
+- Battle-tested
 
 **Cons:**
 - 20-25 minute startup
 - Limited to 100K inventory records
 - Complex credential handling
-
-### Option 2: Delta Lake Cache (New Alternative)
-
-Direct Delta table access via `deltalake` library:
-
-```bash
-cd parquet_test
-python deltalake_cache.py        # Build cache and show stats
-python deltalake_cache.py test   # Quick connection test
-```
-
-**Pros:**
-- ~10x faster startup (2-3 min)
-- Full 187K inventory (no limits)
-- Includes sales data (562K records)
-- Native pandas JOINs
-- Simpler auth (`az login`)
-
-**Cons:**
-- Not yet integrated with FastAPI
-- New code, less tested
+- No sales velocity data
 
 ---
 
@@ -105,17 +109,17 @@ df = get_inventory(rv_type='FIFTH WHEEL', condition='NEW', limit=100)
 
 ---
 
-## Tables Cached
+## Tables Cached (as of January 2025)
 
 | Table | Rows | Memory | Purpose |
 |-------|------|--------|---------|
-| fact_inventory_current | 187,241 | 121 MB | Current inventory |
-| fact_inventory_sales | 562,213 | 200 MB | Sales with days_to_sell |
-| dim_product_model | 29,433 | 63 MB | RV type, manufacturer |
+| fact_inventory_current | 187,600 | 263 MB | Current inventory |
+| fact_inventory_sales | 562,754 | 695 MB | Sales with days_to_sell |
+| dim_product_model | 29,437 | 63 MB | RV type, manufacturer |
 | dim_product | 153,913 | 63 MB | Floorplan |
 | dim_dealership | 12,368 | 38 MB | Dealer info |
 | dim_date | 8,766 | 6 MB | Calendar |
-| **Total** | **~950K** | **~500 MB** | |
+| **Total** | **~954K** | **~1.1 GB** | |
 
 ### Tables NOT Cached (Too Large)
 
@@ -129,19 +133,27 @@ df = get_inventory(rv_type='FIFTH WHEEL', condition='NEW', limit=100)
 
 ## Aggregations Included
 
-The cache pre-computes these aggregations:
+The cache computes aggregations with **pre-computed unfiltered results** for instant responses:
 
+**Pre-computed at startup (~2 sec):**
+- Unfiltered aggregations cached in `_aggregations_cache`
+- Response time for unfiltered `/inventory/aggregated`: **~300-400ms** (vs 3+ seconds previously)
+
+**On-demand (filtered requests):**
 - `total_units`, `total_value`, `avg_price`
-- `by_rv_type` - count, value, avg price per RV type
+- `by_rv_type` - count, value, avg price per RV type (9 types)
 - `by_condition` - NEW vs USED breakdown
-- `by_state` - all 65 states/provinces
+- `by_state` - all 60 states/provinces (no limit)
 - `by_region` - 7 regions
-- `by_dealer_group` - top 20 dealer groups
-- `by_manufacturer` - top 20 manufacturers
-- `by_city` - top 50 cities
+- `by_dealer_group` - all 659 dealer groups (no limit)
+- `by_manufacturer` - all 281 manufacturers (no limit)
+- `by_city` - all 4,510 cities (no limit)
+- `by_county` - all counties (no limit)
 - `avg_days_to_sell` - from sales data
 - `sales_velocity_by_rv_type` - sales metrics per RV type
 - `sales_velocity_by_condition` - sales metrics NEW vs USED
+
+**Multi-select filtering supported**: All aggregation endpoints support comma-separated values for dealer_group, manufacturer, and model filters.
 
 ---
 
@@ -149,7 +161,8 @@ The cache pre-computes these aggregations:
 
 | File | Purpose |
 |------|---------|
-| `deltalake_cache.py` | **Main cache builder** - builds complete cache with joins |
+| `../api/deltalake_adapter.py` | **Production adapter** - FastAPI integration with multi-select support |
+| `deltalake_cache.py` | Cache builder - builds complete cache with joins |
 | `gold_table_reader.py` | Low-level table reader |
 | `SCHEMA.md` | Complete schema for all 13 tables |
 | `list_all_parquet.py` | Utility - list all files in lakehouse |
@@ -167,27 +180,26 @@ LAKEHOUSE_ID = '06dc42ac-4151-4bb9-94fb-1a03edf49600'
 
 ---
 
-## Integration with FastAPI
+## Integration with FastAPI (Implemented)
 
-To use Delta Lake cache in the API (future):
+Delta Lake is fully integrated with the FastAPI backend via `api/deltalake_adapter.py`:
 
-```python
-# In api/main.py, add alternative startup
-
-import sys
-sys.path.insert(0, '../parquet_test')
-from deltalake_cache import build_cache, get_inventory, get_aggregations
-
-# At startup
-USE_DELTALAKE = os.getenv('USE_DELTALAKE', 'false').lower() == 'true'
-
-if USE_DELTALAKE:
-    print("Using Delta Lake cache...")
-    _deltalake_cache = build_cache()
-else:
-    print("Using GraphQL cache...")
-    # existing load_cache() code
+```bash
+# Start with Delta Lake (recommended)
+cd api && USE_DELTALAKE=true python -m uvicorn main:app --port 8000
 ```
+
+The integration provides:
+- `DeltaLakeClient` class with same interface as GraphQL client
+- Automatic cache building at startup (~50 seconds)
+- Multi-select filter support via `_apply_filter()` helper
+- On-demand aggregations with no limits
+- Sales velocity endpoints (`/inventory/sales-velocity`, `/inventory/top-floorplans`)
+
+Key files:
+- `api/deltalake_adapter.py` - Main Delta Lake client
+- `parquet_test/deltalake_cache.py` - Cache builder with pandas JOINs
+- `parquet_test/gold_table_reader.py` - Low-level table reader
 
 ---
 
@@ -205,7 +217,8 @@ discover_all_tables()
 ```
 
 ### Memory Issues
-The cache needs ~500 MB RAM. If you're low on memory, you can exclude sales:
-```python
-# Modify CACHE_TABLES in deltalake_cache.py to exclude fact_inventory_sales
+The cache needs ~1.1 GB RAM. If you're low on memory, use GraphQL mode instead:
+```bash
+# GraphQL mode uses ~400 MB
+cd api && python -m uvicorn main:app --port 8000
 ```

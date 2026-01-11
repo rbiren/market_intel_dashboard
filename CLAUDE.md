@@ -37,19 +37,22 @@ cd mobile-app && npm run dev -- --port 5175
 Reads Delta tables directly from Fabric Lakehouse using `deltalake` library:
 
 ```
-Server Startup (~50 seconds)
+Server Startup (~52 seconds)
   └─ build_cache()
-       ├─ dim_product_model (29K)     → products cache
-       ├─ dim_product (154K)          → floorplans cache
-       ├─ dim_dealership (12K)        → dealers cache
-       ├─ dim_date (9K)               → dates cache
-       ├─ fact_inventory_current (187K) → inventory + pandas JOINs
-       ├─ fact_inventory_sales (562K)   → sales data with days_to_sell
-       └─ Build aggregations in memory
+       ├─ dim_product_model (29,437)      → products cache (63 MB)
+       ├─ dim_product (153,913)           → floorplans cache (63 MB)
+       ├─ dim_dealership (12,368)         → dealers cache (38 MB)
+       ├─ dim_date (8,766)                → dates cache (6 MB)
+       ├─ fact_inventory_current (187,600) → inventory + pandas JOINs (263 MB)
+       ├─ fact_inventory_sales (562,754)   → sales data with days_to_sell (695 MB)
+       ├─ Pre-compute aggregations (~2 sec) → _aggregations_cache (instant unfiltered responses)
+       └─ Total memory: ~1.1 GB
 ```
 
-**Pros:** 10x faster startup, full data (no 100K limit), includes sales velocity data
+**Pros:** 10x faster startup, full data (no 100K limit), includes sales velocity data, instant unfiltered responses
 **Requires:** `az login` for authentication
+
+**Performance Note:** Unfiltered `/inventory/aggregated` requests return in ~300-400ms (from pre-computed cache) vs 3+ seconds for filtered requests. See Issue #25 for details.
 
 ### GraphQL Mode (Legacy)
 
@@ -83,6 +86,7 @@ All requests are instant (in-memory):
 |------|---------|
 | `api/main.py` | FastAPI backend - endpoints, GraphQL client, env var switch |
 | `api/deltalake_adapter.py` | Delta Lake client (same interface as GraphQL client) |
+| `api/start_server.bat` | Windows batch file to start server with Delta Lake mode |
 | `parquet_test/deltalake_cache.py` | Delta Lake cache builder with pandas JOINs |
 | `parquet_test/gold_table_reader.py` | Low-level Delta table reader |
 | `parquet_test/SCHEMA.md` | Complete schema for all 13 gold tables |
@@ -99,9 +103,10 @@ All requests are instant (in-memory):
 | `mobile-app/src/pages/SalesPlatform/CompetitiveIntel.tsx` | Competitive landscape analysis |
 | `mobile-app/src/pages/SalesPlatform/ProductCatalog.tsx` | Product catalog for presentations |
 | `mobile-app/src/pages/SalesPlatform/MeetingPrep.tsx` | Meeting preparation tool |
-| `mobile-app/src/context/SalesContext.tsx` | Sales Platform state (theme, view, filters) |
-| `mobile-app/src/hooks/useSalesData.ts` | Sales Platform data hooks |
-| `mobile-app/src/components/sales/` | Sales components (Sidebar, Header, FilterPanel, etc.) |
+| `mobile-app/src/context/SalesContext.tsx` | Sales Platform state (theme, view, filters) - supports multi-select arrays |
+| `mobile-app/src/hooks/useSalesData.ts` | Sales Platform data hooks - builds comma-separated filter params |
+| `mobile-app/src/components/sales/FilterPanel.tsx` | Multi-select searchable dropdowns for dealer/manufacturer/model |
+| `mobile-app/src/components/sales/` | Sales components (Sidebar, Header, etc.) |
 
 ### Analytics Dashboard (Legacy)
 | File | Purpose |
@@ -215,6 +220,94 @@ Thor Industries uses an **outdoor adventure aesthetic** with:
 
 ---
 
+## Sales Platform Filter Panel
+
+The Sales Platform includes a powerful filter panel with **multi-select searchable dropdowns** for filtering inventory data.
+
+### Filter Panel Features
+- **Multi-select support**: Select multiple values for dealer group, manufacturer, and model filters
+- **Type-to-search**: Filter large option lists by typing in the search box
+- **Chip display**: Selected values shown as removable chips
+- **Clear all**: One-click to clear all selections for a filter
+- **No item limits**: All options displayed (659 dealer groups, 281 manufacturers, 1,223 models)
+
+### Available Filters
+| Filter | Type | Options |
+|--------|------|---------|
+| Region | Single select | 7 regions |
+| State | Single select | 60 states/provinces |
+| City | Single select | 4,510 cities |
+| Dealer Group | **Multi-select** | 659 dealer groups |
+| RV Type | Single select | 9 RV types |
+| Condition | Single select | NEW, USED |
+| Manufacturer | **Multi-select** | 281 manufacturers |
+| Model | **Multi-select** | 1,223 models |
+| Price Range | Min/Max inputs | Numeric |
+
+### Multi-Select Implementation
+
+**Frontend (FilterPanel.tsx)**:
+```typescript
+// SearchableSelect component with multi-select
+const selectedValues: string[] = Array.isArray(rawValue)
+  ? rawValue
+  : (rawValue ? [rawValue] : [])
+
+// Toggle selection
+const handleToggle = (option: string) => {
+  if (isSelected) {
+    updateFilter(filterKey, selectedValues.filter(v => v !== option))
+  } else {
+    updateFilter(filterKey, [...selectedValues, option])
+  }
+}
+```
+
+**Context (SalesContext.tsx)**:
+```typescript
+export interface SalesFilters {
+  dealerGroup?: string | string[]    // Supports multi-select
+  manufacturer?: string | string[]   // Supports multi-select
+  model?: string | string[]          // Supports multi-select
+  // ... other single-select filters
+}
+```
+
+**Data Hooks (useSalesData.ts)**:
+```typescript
+// Arrays become comma-separated URL params
+if (filters.dealerGroup) {
+  const value = Array.isArray(filters.dealerGroup)
+    ? filters.dealerGroup.join(',')
+    : filters.dealerGroup
+  if (value) params.append('dealer_group', value)
+}
+```
+
+**Backend (deltalake_adapter.py)**:
+```python
+def _parse_multi_value(self, value: str) -> List[str]:
+    """Parse comma-separated filter values into a list."""
+    return [v.strip() for v in value.split(',') if v.strip()]
+
+def _apply_filter(self, df: pd.DataFrame, column: str, value: str) -> pd.DataFrame:
+    """Apply filter supporting both single and comma-separated values."""
+    values = self._parse_multi_value(value)
+    if len(values) == 1:
+        return df[df[column] == values[0]]
+    return df[df[column].isin(values)]
+```
+
+### Filter Panel Files
+| File | Purpose |
+|------|---------|
+| `FilterPanel.tsx` | UI component with SearchableSelect |
+| `SalesContext.tsx` | Filter state with array type support |
+| `useSalesData.ts` | API param building with comma-join |
+| `deltalake_adapter.py` | Backend filtering with `.isin()` |
+
+---
+
 ## Analytics Tab & Cross-Filtering
 
 The Analytics tab supports **A/B/C/M testing** with four visualization implementations:
@@ -312,17 +405,26 @@ MobileGeoMap.tsx         - Mobile geo map with region aggregation
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/health` | GET | Health check |
-| `/filters` | GET | Filter options (rv_types, states, regions, cities, conditions, dealer_groups) |
+| `/debug/columns` | GET | Debug endpoint showing inventory DataFrame columns (Delta Lake mode only) |
+| `/filters` | GET | Filter options (rv_types, states, regions, cities, conditions, dealer_groups, manufacturers, models, floorplans) |
 | `/dealers` | GET | List of dealership names |
 | `/inventory` | GET | Inventory items with filters |
 | `/inventory/aggregated` | GET | Aggregated stats (KPIs, charts) with by_region, by_city, by_county. Includes `avg_days_to_sell` and `sales_velocity` |
 | `/inventory/totals` | GET | Quick totals via native groupBy |
-| `/inventory/sales-velocity` | GET | Sales velocity metrics (Delta Lake mode only) - days to sell, sale prices, breakdowns by dimension |
+| `/inventory/sales-velocity` | GET | Sales velocity metrics (Delta Lake mode only) - days to sell, sale prices, breakdowns by dimension (no limits) |
 | `/inventory/sales-date-range` | GET | Available date range for sales data (min_date, max_date) |
+| `/inventory/top-floorplans` | GET | Top selling floorplans by RV category (Delta Lake mode only) |
 
-**Common Params**: `rv_class`, `dealer_group`, `manufacturer`, `condition`, `state`, `min_price`, `max_price`, `limit`
+**Common Params**: `rv_class`, `dealer_group`, `manufacturer`, `condition`, `state`, `model`, `floorplan`, `min_price`, `max_price`, `limit`
+
+**Multi-Select Params** (comma-separated values supported):
+- `dealer_group=CAMPING WORLD RV SALES,CAMPERS INN RV` - Filter by multiple dealer groups
+- `manufacturer=KEYSTONE,FOREST RIVER` - Filter by multiple manufacturers
+- `model=COUGAR,MONTANA` - Filter by multiple models
 
 **Sales Velocity Params**: `start_date` (YYYY-MM-DD), `end_date` (YYYY-MM-DD) - Filter sales by date range
+
+**Top Floorplans Params**: `start_date`, `end_date`, `limit` (default 10) - Returns array of categories with floorplans
 
 ---
 
@@ -484,6 +586,118 @@ const handleStateClick = (geo: { properties: { name: string } }) => {
 npm install react-router-dom --legacy-peer-deps
 ```
 
+### 20. Pydantic Response Model Missing Fields (January 2025)
+**Problem**: `FilterOptionsResponse` Pydantic model didn't include `models` and `floorplans` fields, causing these to be silently dropped from API responses even though the backend was returning them.
+**Solution**: Add missing fields to the Pydantic model in `api/main.py`:
+```python
+class FilterOptionsResponse(BaseModel):
+    rv_types: list[str]
+    states: list[str]
+    regions: list[str] = []
+    cities: list[str] = []
+    conditions: list[str]
+    dealer_groups: list[str] = []
+    manufacturers: list[str] = []
+    models: list[str] = []        # Added
+    floorplans: list[str] = []    # Added
+```
+
+### 21. Top Floorplans API Response Format Mismatch (January 2025)
+**Problem**: `/inventory/top-floorplans` endpoint returned `categories` as an object `{"CLASS A": {...}}` but frontend TypeScript expected an array `[{category: "CLASS A", ...}]`. Also used `top_floorplans` key but frontend expected `floorplans`.
+**Solution**: Changed API to return array format with correct keys:
+```python
+# Before (wrong)
+result['categories'][category] = {'top_floorplans': [...]}
+
+# After (correct)
+result['categories'].append({
+    'category': category,
+    'floorplans': [...]  # Changed from 'top_floorplans'
+})
+```
+
+### 22. Aggregation Limits Too Restrictive (January 2025)
+**Problem**: Aggregation queries had hardcoded limits (100 for dealer_group/manufacturer, 65 for state) that truncated data.
+**Solution**: Removed limits in `api/deltalake_adapter.py` to return all data:
+```python
+# Before
+'by_dealer_group': self._aggregate_by(df, 'dealer_group', limit=200),
+'by_manufacturer': self._aggregate_by(df, 'manufacturer', limit=200),
+
+# After
+'by_dealer_group': self._aggregate_by(df, 'dealer_group'),  # No limit
+'by_manufacturer': self._aggregate_by(df, 'manufacturer'),  # No limit
+```
+
+### 23. Server Running Old Code After Git Pull
+**Problem**: After `git pull`, the running server still had old code without new endpoints (e.g., `/inventory/sales-velocity` returning 404).
+**Solution**: Always restart the backend server after pulling new code:
+```bash
+# Kill existing python processes
+taskkill /F /IM python.exe
+
+# Restart with Delta Lake mode
+cd api && USE_DELTALAKE=true python -m uvicorn main:app --port 8000
+```
+
+### 24. Multi-Select Filters Return Zero Results (January 2025)
+**Problem**: After adding multi-select filter support, single select worked (53,089 units) but multi-select returned 0 results. The `_apply_filter` helper with `.isin()` was added to `deltalake_adapter.py` but the server wasn't restarted.
+**Solution**: Python caches imported modules. Backend code changes require server restart:
+```bash
+# Kill existing python processes
+taskkill /F /IM python.exe
+
+# Restart with Delta Lake mode (use Anaconda Python if not in PATH)
+cd api && USE_DELTALAKE=true python -m uvicorn main:app --port 8000
+
+# Or with explicit Anaconda path on Windows:
+cd api && set USE_DELTALAKE=true && C:\Users\rbiren\AppData\Local\anaconda3\python.exe -m uvicorn main:app --port 8000
+```
+**Verification**: Test with curl:
+```bash
+# Single select - should return ~53,089
+curl "http://localhost:8000/inventory/aggregated?dealer_group=CAMPING+WORLD+RV+SALES"
+
+# Multi-select - should return ~60,830 (sum of both)
+curl "http://localhost:8000/inventory/aggregated?dealer_group=CAMPING+WORLD+RV+SALES,CAMPERS+INN+RV"
+```
+
+### 25. Slow Aggregated Endpoint Response Times (January 2025)
+**Problem**: `/inventory/aggregated` was taking 3,300ms+ per request, causing slow page loads. Two contributing factors:
+1. **Frontend**: React Strict Mode caused duplicate API calls; filter object instability caused unnecessary re-fetches
+2. **Backend**: Aggregations computed on every request using slow `iterrows()` instead of `to_dict('records')`
+
+**Solution - Frontend** (`useSalesData.ts`, `SalesDashboard.tsx`):
+- Removed duplicate `useAggregatedData` call from `SalesDashboard.tsx`
+- Added `useMemo` to stabilize filter objects and prevent unnecessary API calls:
+```typescript
+const stableFilters = useMemo(() => filters, [JSON.stringify(filters)])
+```
+
+**Solution - Backend** (`deltalake_adapter.py`):
+- Added `_aggregations_cache` class variable to store pre-computed unfiltered aggregations
+- Added `_compute_aggregations_no_filter()` method called at startup (~2 seconds)
+- Changed `_aggregate_by_fast()` to use `to_dict('records')` instead of `iterrows()` (~10x faster)
+- Modified `_build_aggregation_response()` to return cached results when no filters applied
+- Used mask-based filtering instead of chained `.copy()` operations
+
+**Results**:
+- Unfiltered `/inventory/aggregated`: **3,300ms → 378ms** (~9x improvement)
+- Filtered requests still compute on-demand but use optimized methods
+- `/inventory/sales-velocity`: **5,600ms → 2,637ms** (~2x improvement)
+
+**Key methods added**:
+```python
+class DeltaLakeClient:
+    _aggregations_cache: Dict[str, Any] = {}  # Pre-computed unfiltered aggregations
+
+    def _compute_aggregations_no_filter(self):
+        """Pre-compute aggregations at startup for instant unfiltered responses."""
+
+    def _aggregate_by_fast(self, df, column, limit=None):
+        """Fast aggregation using to_dict('records') instead of iterrows()."""
+```
+
 ---
 
 ## Code Quality
@@ -507,7 +721,22 @@ cd mobile-app && npx tsc --noEmit
 ## Making Changes
 
 ### To modify caching logic:
-Edit `api/main.py` - look for:
+
+**Delta Lake Mode** (`api/deltalake_adapter.py`):
+- `DeltaLakeClient` class provides same interface as GraphQL client
+- `get_filter_options()` - returns all filter values from inventory DataFrame
+- `get_inventory()` - filtered inventory queries with pandas
+- `get_aggregations()` - on-demand aggregations (no limits)
+- `get_sales_velocity_filtered()` - sales metrics with date range support
+- `get_top_floorplans()` - top selling floorplans by RV category
+- `_parse_multi_value()` - splits comma-separated filter values into list
+- `_apply_filter()` - applies single or multi-value filter using `.isin()`
+- `_aggregations_cache` - stores pre-computed unfiltered aggregations (built at startup)
+- `_compute_aggregations_no_filter()` - pre-computes aggregations at startup (~2 sec)
+- `_aggregate_by_fast()` - optimized aggregation using `to_dict('records')`
+- `_build_aggregation_response()` - returns cached results when no filters applied
+
+**GraphQL Mode** (`api/main.py`):
 - `load_cache()` - dimension table loading (products, floorplans, dealers)
   - `_products_cache` keyed by `dim_product_model_skey` (rv_type, manufacturer, model)
   - `_floorplan_cache` keyed by `dim_product_skey` (floorplan)
@@ -519,10 +748,23 @@ Edit `api/main.py` - look for:
 - `get_cached_inventory()` - filtered inventory queries
 - `get_filtered_aggregations()` - filtered aggregations
 
+**Cache Building** (`parquet_test/deltalake_cache.py`):
+- `build_cache()` - builds complete cache with pandas JOINs
+- Loads dimension tables: dim_product_model, dim_product, dim_dealership, dim_date
+- Loads fact tables: fact_inventory_current, fact_inventory_sales
+- Performs pandas merge operations for denormalized views
+
 ### To add new filters:
-1. Add parameter to endpoint function
+1. Add parameter to endpoint function in `api/main.py`
 2. Add filter logic in `get_cached_inventory()` and `get_filtered_aggregations()`
 3. Update `get_filter_options()` if new dimension needed
+
+### To add multi-select support to a filter:
+1. **Backend** (`deltalake_adapter.py`): Use `_apply_filter()` helper which handles comma-separated values
+2. **Context** (`SalesContext.tsx`): Change type from `string` to `string | string[]`
+3. **Hooks** (`useSalesData.ts`): Join arrays with comma before adding to URL params
+4. **UI** (`FilterPanel.tsx`): Use `SearchableSelect` component with checkbox selection
+5. **Restart server**: Backend code changes require server restart
 
 ### To change frontend:
 
@@ -565,16 +807,25 @@ cd api && python -m uvicorn main:app --port 8000
 
 ## Data Reference
 
-- **186,610** total inventory units (from groupBy, reconciled in sub-tables)
-- **132,952** NEW units, **53,658** USED units (pre-computed, instant)
-- **100,000** cached inventory items (GraphQL limit)
-- **RV Types**: TRAVEL TRAILER (121k), FIFTH WHEEL (36k), CLASS C (14k), CLASS A (7k), CLASS B (4.5k), OTHER, CAMPING TRAILER, PARK MODEL
+### Inventory Data (as of January 2025)
+- **187,600** total inventory units (full dataset in Delta Lake mode)
+- **100,000** cached inventory items (GraphQL mode limit only)
+
+### Sales History Data (Delta Lake mode only)
+- **562,754** total sold units with days_to_sell metrics
+- Date range available via `/inventory/sales-date-range` endpoint
+
+### Dimensions (No Limits - Full Data)
+- **RV Types**: 9 types - TRAVEL TRAILER (121k), FIFTH WHEEL (36k), CLASS C (14k), CLASS A (7k), CLASS B (4.5k), OTHER, CAMPING TRAILER, PARK MODEL, TOY HAULER
 - **Conditions**: NEW, USED
-- **States**: Full names ("Arizona" not "AZ") - **65** states/provinces
+- **States**: Full names ("Arizona" not "AZ") - **60** states/provinces
 - **Regions**: 7 regions (SOUTHEAST, NORTHEAST, SOUTHWEST, CANADA, NORTHWEST, ONLINE)
-- **Cities**: **4,510** unique cities
-- **Counties**: Available in aggregations
-- **576** dealer groups
+- **Cities**: **4,510** unique cities (all returned, no limit)
+- **Counties**: All returned in aggregations (no limit)
+- **Dealer Groups**: **659** dealer groups (all returned, no limit)
+- **Manufacturers**: **281** manufacturers (all returned, no limit)
+- **Models**: **1,223** models
+- **Floorplans**: **16,265** floorplans
 
 ---
 

@@ -7,7 +7,7 @@
 
 import { useMemo } from 'react'
 import { useSalesContext } from '../../context/SalesContext'
-import { useTerritoryStats, useAggregatedData, useSalesVelocityStats } from '../../hooks/useSalesData'
+import { useTerritoryStats, useSalesVelocityStats } from '../../hooks/useSalesData'
 import { StatCard } from '../../components/sales/StatCard'
 import { DealerCard } from '../../components/sales/DealerCard'
 import { MiniBarChart, MiniDonutChart, MarketShareBar } from '../../components/sales/MiniChart'
@@ -15,13 +15,13 @@ import { StatCardSkeleton, DealerCardSkeleton } from '../../components/sales/Loa
 
 export function SalesDashboard() {
   const { theme, viewMode, filters, setCurrentView, setSelectedDealer } = useSalesContext()
-  const { stats, loading: statsLoading } = useTerritoryStats(filters)
-  const { data: aggData, loading: aggLoading } = useAggregatedData(filters)
+  // Use aggData from useTerritoryStats to avoid duplicate API calls
+  const { stats, aggData, loading: statsLoading } = useTerritoryStats(filters)
   const { stats: velocityStats, loading: velocityLoading } = useSalesVelocityStats(filters)
 
   const isDark = theme === 'dark'
   const isMobile = viewMode === 'mobile'
-  const loading = statsLoading || aggLoading
+  const loading = statsLoading
 
   // Format helpers
   const formatCurrency = (value: number) => {

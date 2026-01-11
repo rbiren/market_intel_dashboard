@@ -5,6 +5,7 @@
  * Supports both slide-out panel (mobile) and inline (desktop) modes
  */
 
+import { useState, useRef, useEffect } from 'react'
 import { useSalesContext } from '../../context/SalesContext'
 import type { SalesFilters } from '../../context/SalesContext'
 import { useFilterOptions, useSalesDateRange } from '../../hooks/useSalesData'
@@ -59,6 +60,260 @@ export function FilterPanel({ mode = 'inline', onClose }: FilterPanelProps) {
       </select>
     </div>
   )
+
+  // Multi-Select Searchable Component for large option lists
+  const SearchableSelect = ({
+    label,
+    filterKey,
+    options,
+    placeholder
+  }: {
+    label: string
+    filterKey: keyof SalesFilters
+    options: string[]
+    placeholder: string
+  }) => {
+    const [isOpen, setIsOpen] = useState(false)
+    const [searchTerm, setSearchTerm] = useState('')
+    const containerRef = useRef<HTMLDivElement>(null)
+    const inputRef = useRef<HTMLInputElement>(null)
+
+    // Get current values as array
+    const rawValue = filters[filterKey]
+    const selectedValues: string[] = Array.isArray(rawValue)
+      ? rawValue
+      : (rawValue ? [rawValue] : [])
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+          setIsOpen(false)
+          setSearchTerm('')
+        }
+      }
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
+    // Filter options based on search term
+    const filteredOptions = options.filter(opt =>
+      opt.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    const isSelected = (value: string) => selectedValues.includes(value)
+
+    const handleToggle = (value: string) => {
+      let newValues: string[]
+      if (isSelected(value)) {
+        newValues = selectedValues.filter(v => v !== value)
+      } else {
+        newValues = [...selectedValues, value]
+      }
+      updateFilter(filterKey, newValues.length > 0 ? newValues : undefined)
+    }
+
+    const handleClear = () => {
+      updateFilter(filterKey, undefined)
+      setSearchTerm('')
+    }
+
+    const handleRemoveChip = (value: string) => {
+      const newValues = selectedValues.filter(v => v !== value)
+      updateFilter(filterKey, newValues.length > 0 ? newValues : undefined)
+    }
+
+    const displayText = selectedValues.length === 0
+      ? placeholder
+      : selectedValues.length === 1
+        ? selectedValues[0]
+        : `${selectedValues.length} selected`
+
+    return (
+      <div ref={containerRef} className="relative">
+        <label className={labelClasses}>{label}</label>
+        <div
+          className={`${selectClasses} cursor-pointer flex items-center justify-between min-h-[38px]`}
+          onClick={() => {
+            setIsOpen(!isOpen)
+            if (!isOpen) {
+              setTimeout(() => inputRef.current?.focus(), 0)
+            }
+          }}
+        >
+          <span className={selectedValues.length > 0 ? '' : (isDark ? 'text-[#8c8a7e]' : 'text-[#595755]')}>
+            {displayText}
+          </span>
+          <div className="flex items-center gap-1">
+            {selectedValues.length > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleClear()
+                }}
+                className={`p-0.5 rounded hover:bg-black/10 ${isDark ? 'hover:bg-white/10' : ''}`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+            <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Selected chips (shown when dropdown is closed and multiple selected) */}
+        {!isOpen && selectedValues.length > 1 && (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {selectedValues.slice(0, 3).map(value => (
+              <span
+                key={value}
+                className={`
+                  inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full
+                  ${isDark ? 'bg-[#495737]/40 text-[#fffdfa]' : 'bg-[#495737]/20 text-[#181817]'}
+                `}
+              >
+                <span className="truncate max-w-[100px]">{value}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleRemoveChip(value)
+                  }}
+                  className="hover:opacity-70"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </span>
+            ))}
+            {selectedValues.length > 3 && (
+              <span className={`text-xs px-2 py-0.5 ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+                +{selectedValues.length - 3} more
+              </span>
+            )}
+          </div>
+        )}
+
+        {isOpen && (
+          <div className={`
+            absolute z-50 w-full mt-1 rounded-lg border shadow-lg max-h-72 overflow-hidden
+            ${isDark ? 'bg-[#2a2928] border-white/10' : 'bg-white border-[#d9d6cf]'}
+          `}>
+            {/* Search input */}
+            <div className={`p-2 border-b ${isDark ? 'border-white/10' : 'border-[#d9d6cf]'}`}>
+              <div className="relative">
+                <svg
+                  className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Type to search..."
+                  className={`
+                    w-full pl-8 pr-3 py-1.5 text-sm rounded border
+                    ${isDark
+                      ? 'bg-[#181817] border-white/10 text-[#fffdfa] placeholder-[#8c8a7e]'
+                      : 'bg-[#f7f4f0] border-[#d9d6cf] text-[#181817] placeholder-[#595755]'
+                    }
+                    focus:outline-none focus:border-[#495737]
+                  `}
+                />
+              </div>
+            </div>
+
+            {/* Selected chips inside dropdown */}
+            {selectedValues.length > 0 && (
+              <div className={`p-2 border-b flex flex-wrap gap-1 ${isDark ? 'border-white/10 bg-[#232221]' : 'border-[#d9d6cf] bg-[#f7f4f0]'}`}>
+                {selectedValues.map(value => (
+                  <span
+                    key={value}
+                    className={`
+                      inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full
+                      ${isDark ? 'bg-[#495737] text-[#fffdfa]' : 'bg-[#495737] text-white'}
+                    `}
+                  >
+                    <span className="truncate max-w-[120px]">{value}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleRemoveChip(value)
+                      }}
+                      className="hover:opacity-70"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                ))}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleClear()
+                  }}
+                  className={`text-xs px-2 py-0.5 rounded-full ${isDark ? 'text-[#a46807] hover:bg-white/10' : 'text-[#a46807] hover:bg-black/5'}`}
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+
+            {/* Options list with checkboxes */}
+            <div className="overflow-y-auto max-h-48">
+              {filteredOptions.length === 0 ? (
+                <div className={`px-3 py-4 text-sm text-center ${isDark ? 'text-[#8c8a7e]' : 'text-[#595755]'}`}>
+                  No results found
+                </div>
+              ) : (
+                filteredOptions.map(opt => (
+                  <div
+                    key={opt}
+                    onClick={() => handleToggle(opt)}
+                    className={`
+                      px-3 py-2 text-sm cursor-pointer flex items-center gap-2
+                      ${isDark ? 'hover:bg-white/10' : 'hover:bg-[#f7f4f0]'}
+                      ${isSelected(opt) ? (isDark ? 'bg-[#495737]/20' : 'bg-[#495737]/10') : ''}
+                    `}
+                  >
+                    <div className={`
+                      w-4 h-4 rounded border flex items-center justify-center flex-shrink-0
+                      ${isSelected(opt)
+                        ? 'bg-[#495737] border-[#495737]'
+                        : isDark ? 'border-white/30' : 'border-[#d9d6cf]'
+                      }
+                    `}>
+                      {isSelected(opt) && (
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="truncate">{opt}</span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Show count */}
+            <div className={`px-3 py-1.5 text-xs border-t flex justify-between ${isDark ? 'border-white/10 text-[#8c8a7e]' : 'border-[#d9d6cf] text-[#595755]'}`}>
+              <span>{selectedValues.length} selected</span>
+              <span>{filteredOptions.length} of {options.length} options</span>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   const content = (
     <div className="space-y-4">
@@ -147,36 +402,28 @@ export function FilterPanel({ mode = 'inline', onClose }: FilterPanelProps) {
             placeholder="All Conditions"
           />
 
-          {/* Dealer Group */}
-          <FilterSelect
+          {/* Dealer Group - Searchable */}
+          <SearchableSelect
             label="Dealer Group"
             filterKey="dealerGroup"
-            options={(filterOptions?.dealer_groups || []).slice(0, 50)}
+            options={filterOptions?.dealer_groups || []}
             placeholder="All Dealer Groups"
           />
 
-          {/* Manufacturer */}
-          <FilterSelect
+          {/* Manufacturer - Searchable */}
+          <SearchableSelect
             label="Manufacturer"
             filterKey="manufacturer"
-            options={(filterOptions?.manufacturers || []).slice(0, 50)}
+            options={filterOptions?.manufacturers || []}
             placeholder="All Manufacturers"
           />
 
-          {/* Model */}
-          <FilterSelect
+          {/* Model - Searchable */}
+          <SearchableSelect
             label="Model"
             filterKey="model"
-            options={(filterOptions?.models || []).slice(0, 50)}
+            options={filterOptions?.models || []}
             placeholder="All Models"
-          />
-
-          {/* Floorplan */}
-          <FilterSelect
-            label="Floorplan"
-            filterKey="floorplan"
-            options={(filterOptions?.floorplans || []).slice(0, 50)}
-            placeholder="All Floorplans"
           />
 
           {/* Price Range */}

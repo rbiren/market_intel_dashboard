@@ -2022,6 +2022,8 @@ class FilterOptionsResponse(BaseModel):
     conditions: list[str]
     dealer_groups: list[str] = []
     manufacturers: list[str] = []
+    models: list[str] = []
+    floorplans: list[str] = []
 
 
 class AggregationItem(BaseModel):
@@ -2098,6 +2100,22 @@ async def root():
 @app.get("/health")
 async def health():
     return {"status": "ok", "timestamp": datetime.now().isoformat()}
+
+
+@app.get("/debug/columns")
+async def debug_columns():
+    """Debug endpoint to check inventory columns."""
+    if USE_DELTALAKE:
+        inventory = client._cache.get('inventory')
+        if inventory is not None:
+            return {
+                "columns": list(inventory.columns),
+                "has_model": 'model' in inventory.columns,
+                "has_floorplan": 'floorplan' in inventory.columns,
+                "sample_model": inventory['model'].dropna().head(5).tolist() if 'model' in inventory.columns else [],
+                "sample_floorplan": inventory['floorplan'].dropna().head(5).tolist() if 'floorplan' in inventory.columns else []
+            }
+    return {"error": "Not in Delta Lake mode or no inventory"}
 
 
 @app.get("/test-relationship")

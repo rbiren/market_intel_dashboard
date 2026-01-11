@@ -31,6 +31,7 @@ class DeltaLakeClient:
     _instance = None
     _cache = None
     _cache_loaded = False
+    _aggregations_cache = None  # Cache for unfiltered aggregations
 
     def __new__(cls):
         if cls._instance is None:
@@ -51,6 +52,14 @@ class DeltaLakeClient:
         self._cache = build_cache(verbose=True)
         elapsed = (datetime.now() - start).total_seconds()
         print(f"Delta Lake cache loaded in {elapsed:.1f} seconds")
+
+        # Pre-compute unfiltered aggregations for instant responses
+        print("Pre-computing aggregations...")
+        agg_start = datetime.now()
+        self._aggregations_cache = self._compute_aggregations_no_filter()
+        agg_elapsed = (datetime.now() - agg_start).total_seconds()
+        print(f"Aggregations pre-computed in {agg_elapsed:.1f} seconds")
+
         self._cache_loaded = True
 
     def build_aggregations_cache(self):
@@ -63,6 +72,21 @@ class DeltaLakeClient:
         Delta Lake version computes on-demand since it's fast enough.
         """
         pass
+
+    def _parse_multi_value(self, value: str) -> List[str]:
+        """Parse comma-separated filter values into a list."""
+        if not value:
+            return []
+        return [v.strip() for v in value.split(',') if v.strip()]
+
+    def _apply_filter(self, df: pd.DataFrame, column: str, value: str) -> pd.DataFrame:
+        """Apply filter supporting both single and comma-separated values."""
+        if not value or column not in df.columns:
+            return df
+        values = self._parse_multi_value(value)
+        if len(values) == 1:
+            return df[df[column] == values[0]]
+        return df[df[column].isin(values)]
 
     def get_filter_options(self) -> Dict[str, List[str]]:
         """Get available filter options."""
@@ -122,23 +146,15 @@ class DeltaLakeClient:
 
         df = inventory.copy()
 
-        # Apply filters
-        if dealer:
-            df = df[df['dealership'] == dealer]
-        if dealer_group:
-            df = df[df['dealer_group'] == dealer_group]
-        if rv_type:
-            df = df[df['rv_type'] == rv_type]
-        if manufacturer:
-            df = df[df['manufacturer'] == manufacturer]
-        if condition:
-            df = df[df['condition'] == condition]
-        if state:
-            df = df[df['state'] == state]
-        if model and 'model' in df.columns:
-            df = df[df['model'] == model]
-        if floorplan and 'floorplan' in df.columns:
-            df = df[df['floorplan'] == floorplan]
+        # Apply filters (supports comma-separated multi-values)
+        df = self._apply_filter(df, 'dealership', dealer)
+        df = self._apply_filter(df, 'dealer_group', dealer_group)
+        df = self._apply_filter(df, 'rv_type', rv_type)
+        df = self._apply_filter(df, 'manufacturer', manufacturer)
+        df = self._apply_filter(df, 'condition', condition)
+        df = self._apply_filter(df, 'state', state)
+        df = self._apply_filter(df, 'model', model)
+        df = self._apply_filter(df, 'floorplan', floorplan)
         if min_price is not None:
             df = df[df['price'] >= min_price]
         if max_price is not None:
@@ -222,6 +238,54 @@ class DeltaLakeClient:
             max_price=max_price
         )
 
+    def _compute_aggregations_no_filter(self) -> Dict[str, Any]:
+        """Pre-compute aggregations for unfiltered requests (called once at startup)."""
+        inventory = self._cache.get('inventory')
+        sales = self._cache.get('sales')
+
+        if inventory is None:
+            return self._empty_aggregation_response()
+
+        # Calculate totals
+        total_units = len(inventory)
+        total_value = float(inventory['price'].sum()) if 'price' in inventory.columns else 0
+        avg_price = float(inventory['price'].mean()) if 'price' in inventory.columns else 0
+        min_price_val = float(inventory['price'].min()) if 'price' in inventory.columns else 0
+        max_price_val = float(inventory['price'].max()) if 'price' in inventory.columns else 0
+
+        # Pre-compute all aggregations
+        result = {
+            'total_units': total_units,
+            'total_value': total_value,
+            'avg_price': avg_price,
+            'min_price': min_price_val,
+            'max_price': max_price_val,
+            'by_rv_type': self._aggregate_by_fast(inventory, 'rv_type'),
+            'by_dealer_group': self._aggregate_by_fast(inventory, 'dealer_group'),
+            'by_manufacturer': self._aggregate_by_fast(inventory, 'manufacturer'),
+            'by_condition': self._aggregate_by_fast(inventory, 'condition'),
+            'by_state': self._aggregate_by_fast(inventory, 'state', limit=65),
+            'by_region': self._aggregate_by_fast(inventory, 'region') if 'region' in inventory.columns else [],
+            'by_city': self._aggregate_by_fast(inventory, 'city') if 'city' in inventory.columns else [],
+            'by_county': self._aggregate_by_fast(inventory, 'county') if 'county' in inventory.columns else [],
+        }
+
+        # Pre-compute sales velocity
+        if sales is not None and 'days_to_sell' in sales.columns:
+            result['avg_days_to_sell'] = float(sales['days_to_sell'].mean())
+            result['sales_velocity'] = {
+                'total_sold': len(sales),
+                'avg_days_to_sell': float(sales['days_to_sell'].mean()),
+                'avg_sale_price': float(sales['sale_price'].mean()) if 'sale_price' in sales.columns else None,
+                'by_rv_type': self._aggregate_sales_by_fast(sales, 'rv_type'),
+                'by_condition': self._aggregate_sales_by_fast(sales, 'condition'),
+            }
+        else:
+            result['avg_days_to_sell'] = None
+            result['sales_velocity'] = {'total_sold': 0, 'avg_days_to_sell': None, 'avg_sale_price': None, 'by_rv_type': [], 'by_condition': []}
+
+        return result
+
     def _build_aggregation_response(
         self,
         rv_type: str = None,
@@ -235,31 +299,50 @@ class DeltaLakeClient:
         max_price: float = None
     ) -> Dict[str, Any]:
         """Build aggregation response matching AggregatedSummaryResponse format."""
+        # Return cached aggregations if no filters applied (instant response)
+        if all(f is None for f in [rv_type, dealer_group, manufacturer, condition, state, model, floorplan, min_price, max_price]):
+            if self._aggregations_cache:
+                return self._aggregations_cache
+
         inventory = self._cache.get('inventory')
         if inventory is None:
             return self._empty_aggregation_response()
 
-        df = inventory.copy()
+        # Use view instead of copy when possible, only copy if we need to filter
+        has_filters = any(f is not None for f in [rv_type, dealer_group, manufacturer, condition, state, model, floorplan, min_price, max_price])
+        df = inventory
 
-        # Apply filters
-        if rv_type:
-            df = df[df['rv_type'] == rv_type]
-        if dealer_group:
-            df = df[df['dealer_group'] == dealer_group]
-        if manufacturer:
-            df = df[df['manufacturer'] == manufacturer]
-        if condition:
-            df = df[df['condition'] == condition]
-        if state:
-            df = df[df['state'] == state]
-        if model and 'model' in df.columns:
-            df = df[df['model'] == model]
-        if floorplan and 'floorplan' in df.columns:
-            df = df[df['floorplan'] == floorplan]
-        if min_price is not None:
-            df = df[df['price'] >= min_price]
-        if max_price is not None:
-            df = df[df['price'] <= max_price]
+        if has_filters:
+            # Build mask for filtering (more efficient than chained filtering)
+            mask = pd.Series(True, index=inventory.index)
+
+            if rv_type:
+                values = self._parse_multi_value(rv_type)
+                mask &= inventory['rv_type'].isin(values) if len(values) > 1 else (inventory['rv_type'] == values[0])
+            if dealer_group:
+                values = self._parse_multi_value(dealer_group)
+                mask &= inventory['dealer_group'].isin(values) if len(values) > 1 else (inventory['dealer_group'] == values[0])
+            if manufacturer:
+                values = self._parse_multi_value(manufacturer)
+                mask &= inventory['manufacturer'].isin(values) if len(values) > 1 else (inventory['manufacturer'] == values[0])
+            if condition:
+                values = self._parse_multi_value(condition)
+                mask &= inventory['condition'].isin(values) if len(values) > 1 else (inventory['condition'] == values[0])
+            if state:
+                values = self._parse_multi_value(state)
+                mask &= inventory['state'].isin(values) if len(values) > 1 else (inventory['state'] == values[0])
+            if model and 'model' in inventory.columns:
+                values = self._parse_multi_value(model)
+                mask &= inventory['model'].isin(values) if len(values) > 1 else (inventory['model'] == values[0])
+            if floorplan and 'floorplan' in inventory.columns:
+                values = self._parse_multi_value(floorplan)
+                mask &= inventory['floorplan'].isin(values) if len(values) > 1 else (inventory['floorplan'] == values[0])
+            if min_price is not None:
+                mask &= inventory['price'] >= min_price
+            if max_price is not None:
+                mask &= inventory['price'] <= max_price
+
+            df = inventory[mask]
 
         if len(df) == 0:
             return self._empty_aggregation_response()
@@ -277,21 +360,21 @@ class DeltaLakeClient:
             'avg_price': avg_price,
             'min_price': min_price_val,
             'max_price': max_price_val,
-            'by_rv_type': self._aggregate_by(df, 'rv_type'),
-            'by_dealer_group': self._aggregate_by(df, 'dealer_group', limit=200),
-            'by_manufacturer': self._aggregate_by(df, 'manufacturer', limit=200),
-            'by_condition': self._aggregate_by(df, 'condition'),
-            'by_state': self._aggregate_by(df, 'state', limit=65),
-            'by_region': self._aggregate_by(df, 'region') if 'region' in df.columns else [],
-            'by_city': self._aggregate_by(df, 'city', limit=100) if 'city' in df.columns else [],
-            'by_county': self._aggregate_by(df, 'county', limit=100) if 'county' in df.columns else [],
-            # Sales velocity data
-            'avg_days_to_sell': self._get_avg_days_to_sell(rv_type, dealer_group, manufacturer, condition, state),
-            'sales_velocity': self._get_sales_velocity_summary(rv_type, dealer_group, manufacturer, condition, state),
+            'by_rv_type': self._aggregate_by_fast(df, 'rv_type'),
+            'by_dealer_group': self._aggregate_by_fast(df, 'dealer_group'),
+            'by_manufacturer': self._aggregate_by_fast(df, 'manufacturer'),
+            'by_condition': self._aggregate_by_fast(df, 'condition'),
+            'by_state': self._aggregate_by_fast(df, 'state', limit=65),
+            'by_region': self._aggregate_by_fast(df, 'region') if 'region' in df.columns else [],
+            'by_city': self._aggregate_by_fast(df, 'city') if 'city' in df.columns else [],
+            'by_county': self._aggregate_by_fast(df, 'county') if 'county' in df.columns else [],
+            # Sales velocity data (only compute if filters applied, otherwise use cached)
+            'avg_days_to_sell': self._get_avg_days_to_sell_fast(rv_type, dealer_group, manufacturer, condition, state),
+            'sales_velocity': self._get_sales_velocity_summary_fast(rv_type, dealer_group, manufacturer, condition, state),
         }
 
-    def _aggregate_by(self, df: pd.DataFrame, column: str, limit: int = None) -> List[Dict]:
-        """Aggregate dataframe by column."""
+    def _aggregate_by_fast(self, df: pd.DataFrame, column: str, limit: int = None) -> List[Dict]:
+        """Aggregate dataframe by column - optimized version using to_dict instead of iterrows."""
         if column not in df.columns:
             return []
 
@@ -312,20 +395,123 @@ class DeltaLakeClient:
         if limit:
             grouped = grouped.head(limit)
 
-        # Convert to list of dicts
-        results = []
-        for _, row in grouped.iterrows():
-            results.append({
-                'name': str(row[column]) if pd.notna(row[column]) else 'Unknown',
-                'count': int(row['count']),
-                'total_value': float(row['total_value']) if pd.notna(row['total_value']) else 0,
-                'avg_price': float(row['avg_price']) if pd.notna(row['avg_price']) else 0,
-                'min_price': float(row['min_price']) if pd.notna(row['min_price']) else 0,
-                'max_price': float(row['max_price']) if pd.notna(row['max_price']) else 0,
-                'avg_days_on_lot': float(row['avg_days_on_lot']) if pd.notna(row['avg_days_on_lot']) else None,
-            })
+        # Convert to list of dicts - much faster than iterrows
+        grouped = grouped.fillna({'total_value': 0, 'avg_price': 0, 'min_price': 0, 'max_price': 0})
+        grouped['name'] = grouped[column].fillna('Unknown').astype(str)
+        grouped['count'] = grouped['count'].astype(int)
 
-        return results
+        return grouped[['name', 'count', 'total_value', 'avg_price', 'min_price', 'max_price', 'avg_days_on_lot']].to_dict('records')
+
+    def _aggregate_sales_by_fast(self, df: pd.DataFrame, column: str) -> List[Dict]:
+        """Aggregate sales data by column - optimized version."""
+        if column not in df.columns:
+            return []
+
+        grouped = df.groupby(column).agg({
+            'stock_number': 'count',
+            'days_to_sell': 'mean',
+            'sale_price': 'mean'
+        }).reset_index()
+        grouped.columns = ['name', 'sold_count', 'avg_days_to_sell', 'avg_sale_price']
+        grouped = grouped.sort_values('sold_count', ascending=False)
+        grouped['name'] = grouped['name'].fillna('Unknown').astype(str)
+        grouped['sold_count'] = grouped['sold_count'].astype(int)
+
+        return grouped.to_dict('records')
+
+    def _get_avg_days_to_sell_fast(
+        self,
+        rv_type: str = None,
+        dealer_group: str = None,
+        manufacturer: str = None,
+        condition: str = None,
+        state: str = None,
+    ) -> Optional[float]:
+        """Get average days to sell - returns cached value if no filters."""
+        # Return cached if no filters
+        if all(f is None for f in [rv_type, dealer_group, manufacturer, condition, state]):
+            if self._aggregations_cache:
+                return self._aggregations_cache.get('avg_days_to_sell')
+
+        sales = self._cache.get('sales')
+        if sales is None or 'days_to_sell' not in sales.columns:
+            return None
+
+        # Build mask instead of chained filtering
+        mask = pd.Series(True, index=sales.index)
+        if rv_type:
+            values = self._parse_multi_value(rv_type)
+            mask &= sales['rv_type'].isin(values)
+        if dealer_group:
+            values = self._parse_multi_value(dealer_group)
+            mask &= sales['dealer_group'].isin(values)
+        if manufacturer:
+            values = self._parse_multi_value(manufacturer)
+            mask &= sales['manufacturer'].isin(values)
+        if condition:
+            values = self._parse_multi_value(condition)
+            mask &= sales['condition'].isin(values)
+        if state:
+            values = self._parse_multi_value(state)
+            mask &= sales['state'].isin(values)
+
+        filtered = sales[mask]
+        if len(filtered) == 0:
+            return None
+
+        return float(filtered['days_to_sell'].mean())
+
+    def _get_sales_velocity_summary_fast(
+        self,
+        rv_type: str = None,
+        dealer_group: str = None,
+        manufacturer: str = None,
+        condition: str = None,
+        state: str = None,
+    ) -> Dict[str, Any]:
+        """Get sales velocity summary - returns cached value if no filters."""
+        # Return cached if no filters
+        if all(f is None for f in [rv_type, dealer_group, manufacturer, condition, state]):
+            if self._aggregations_cache:
+                return self._aggregations_cache.get('sales_velocity', {})
+
+        sales = self._cache.get('sales')
+        if sales is None or 'days_to_sell' not in sales.columns:
+            return {'total_sold': 0, 'avg_days_to_sell': None, 'avg_sale_price': None, 'by_rv_type': [], 'by_condition': []}
+
+        # Build mask instead of chained filtering
+        mask = pd.Series(True, index=sales.index)
+        if rv_type:
+            values = self._parse_multi_value(rv_type)
+            mask &= sales['rv_type'].isin(values)
+        if dealer_group:
+            values = self._parse_multi_value(dealer_group)
+            mask &= sales['dealer_group'].isin(values)
+        if manufacturer:
+            values = self._parse_multi_value(manufacturer)
+            mask &= sales['manufacturer'].isin(values)
+        if condition:
+            values = self._parse_multi_value(condition)
+            mask &= sales['condition'].isin(values)
+        if state:
+            values = self._parse_multi_value(state)
+            mask &= sales['state'].isin(values)
+
+        df = sales[mask]
+        if len(df) == 0:
+            return {'total_sold': 0, 'avg_days_to_sell': None, 'avg_sale_price': None, 'by_rv_type': [], 'by_condition': []}
+
+        return {
+            'total_sold': len(df),
+            'avg_days_to_sell': float(df['days_to_sell'].mean()),
+            'avg_sale_price': float(df['sale_price'].mean()) if 'sale_price' in df.columns else None,
+            'by_rv_type': self._aggregate_sales_by_fast(df, 'rv_type'),
+            'by_condition': self._aggregate_sales_by_fast(df, 'condition'),
+        }
+
+    def _aggregate_by(self, df: pd.DataFrame, column: str, limit: int = None) -> List[Dict]:
+        """Aggregate dataframe by column (legacy - use _aggregate_by_fast instead)."""
+        return self._aggregate_by_fast(df, column, limit)
 
     def _empty_aggregation_response(self) -> Dict[str, Any]:
         """Return empty aggregation response."""
@@ -374,17 +560,12 @@ class DeltaLakeClient:
 
         df = sales.copy()
 
-        # Apply filters
-        if rv_type:
-            df = df[df['rv_type'] == rv_type]
-        if dealer_group:
-            df = df[df['dealer_group'] == dealer_group]
-        if manufacturer:
-            df = df[df['manufacturer'] == manufacturer]
-        if condition:
-            df = df[df['condition'] == condition]
-        if state:
-            df = df[df['state'] == state]
+        # Apply filters (supports comma-separated multi-values)
+        df = self._apply_filter(df, 'rv_type', rv_type)
+        df = self._apply_filter(df, 'dealer_group', dealer_group)
+        df = self._apply_filter(df, 'manufacturer', manufacturer)
+        df = self._apply_filter(df, 'condition', condition)
+        df = self._apply_filter(df, 'state', state)
 
         if len(df) == 0:
             return None
@@ -412,17 +593,12 @@ class DeltaLakeClient:
 
         df = sales.copy()
 
-        # Apply filters
-        if rv_type:
-            df = df[df['rv_type'] == rv_type]
-        if dealer_group:
-            df = df[df['dealer_group'] == dealer_group]
-        if manufacturer:
-            df = df[df['manufacturer'] == manufacturer]
-        if condition:
-            df = df[df['condition'] == condition]
-        if state:
-            df = df[df['state'] == state]
+        # Apply filters (supports comma-separated multi-values)
+        df = self._apply_filter(df, 'rv_type', rv_type)
+        df = self._apply_filter(df, 'dealer_group', dealer_group)
+        df = self._apply_filter(df, 'manufacturer', manufacturer)
+        df = self._apply_filter(df, 'condition', condition)
+        df = self._apply_filter(df, 'state', state)
 
         if len(df) == 0:
             return {
@@ -486,21 +662,14 @@ class DeltaLakeClient:
 
         df = sales.copy()
 
-        # Apply dimension filters
-        if rv_type:
-            df = df[df['rv_type'] == rv_type]
-        if dealer_group:
-            df = df[df['dealer_group'] == dealer_group]
-        if manufacturer:
-            df = df[df['manufacturer'] == manufacturer]
-        if condition:
-            df = df[df['condition'] == condition]
-        if model and 'model' in df.columns:
-            df = df[df['model'] == model]
-        if floorplan and 'floorplan' in df.columns:
-            df = df[df['floorplan'] == floorplan]
-        if state:
-            df = df[df['state'] == state]
+        # Apply dimension filters (supports comma-separated multi-values)
+        df = self._apply_filter(df, 'rv_type', rv_type)
+        df = self._apply_filter(df, 'dealer_group', dealer_group)
+        df = self._apply_filter(df, 'manufacturer', manufacturer)
+        df = self._apply_filter(df, 'condition', condition)
+        df = self._apply_filter(df, 'model', model)
+        df = self._apply_filter(df, 'floorplan', floorplan)
+        df = self._apply_filter(df, 'state', state)
 
         # Apply date filters if provided
         if 'calendar_date' in df.columns:
@@ -531,9 +700,9 @@ class DeltaLakeClient:
             'total_sales_value': float(df['sale_price'].sum()) if 'sale_price' in df.columns else None,
             'by_rv_type': self._aggregate_sales_by(df, 'rv_type'),
             'by_condition': self._aggregate_sales_by(df, 'condition'),
-            'by_dealer_group': self._aggregate_sales_by(df, 'dealer_group', limit=100),
-            'by_manufacturer': self._aggregate_sales_by(df, 'manufacturer', limit=100),
-            'by_state': self._aggregate_sales_by(df, 'state', limit=65),
+            'by_dealer_group': self._aggregate_sales_by(df, 'dealer_group'),  # No limit - return all
+            'by_manufacturer': self._aggregate_sales_by(df, 'manufacturer'),  # No limit - return all
+            'by_state': self._aggregate_sales_by(df, 'state'),  # No limit - return all
             'by_region': self._aggregate_sales_by(df, 'region') if 'region' in df.columns else [],
             'by_month': self._aggregate_sales_by_month(df) if 'calendar_date' in df.columns else [],
         }
@@ -706,7 +875,11 @@ class DeltaLakeClient:
 
         result = {
             'total_sold': len(df),
-            'categories': {}
+            'categories': [],  # Return as array for frontend compatibility
+            'date_range': {
+                'start_date': start_date,
+                'end_date': end_date
+            }
         }
 
         # Build top floorplans for each category
@@ -741,12 +914,14 @@ class DeltaLakeClient:
                 })
 
             if category_items:
-                result['categories'][category] = {
+                # Use 'floorplans' key to match frontend TypeScript interface
+                result['categories'].append({
+                    'category': category,
                     'rv_types': rv_types,
                     'total_sold': int(cat_df['stock_number'].count()),
                     'avg_days_to_sell': float(cat_df['days_to_sell'].mean()) if 'days_to_sell' in cat_df.columns else None,
-                    'top_floorplans': category_items
-                }
+                    'floorplans': category_items
+                })
 
         return result
 
@@ -754,5 +929,6 @@ class DeltaLakeClient:
         """Return empty top floorplans response."""
         return {
             'total_sold': 0,
-            'categories': {}
+            'categories': [],
+            'date_range': {'start_date': None, 'end_date': None}
         }
