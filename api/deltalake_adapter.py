@@ -1070,3 +1070,756 @@ class DeltaLakeClient:
             'categories': [],
             'date_range': {'start_date': None, 'end_date': None}
         }
+
+    # =========================================================================
+    # REP INTEL PLATFORM ENDPOINTS
+    # =========================================================================
+
+    # Thor brands for calculating Thor share
+    THOR_BRANDS = [
+        'AIRSTREAM', 'JAYCO', 'KEYSTONE', 'HEARTLAND',
+        'CRUISER RV', 'DUTCHMEN', 'ENTEGRA', 'DYNAMAX',
+        'THOR MOTOR COACH', 'TIFFIN', 'VANLEIGH', 'REDWOOD',
+        'HIGHLAND RIDGE', 'GRAND DESIGN', 'CROSSROADS'
+    ]
+
+    def _is_thor_brand(self, manufacturer: str) -> bool:
+        """Check if a manufacturer is a Thor brand."""
+        if not manufacturer:
+            return False
+        upper = manufacturer.upper()
+        return any(brand in upper for brand in self.THOR_BRANDS)
+
+    def get_territory_health_score(
+        self,
+        region: str = None,
+        state: str = None,
+    ) -> Dict[str, Any]:
+        """
+        Calculate territory health score (0-100) based on:
+        - Thor share (0-25 points)
+        - Sales velocity (0-25 points)
+        - Inventory freshness (0-25 points)
+        - Opportunity capture (0-25 points)
+        """
+        inventory = self._cache.get('inventory')
+        sales = self._cache.get('sales')
+
+        if inventory is None:
+            return self._empty_health_score_response()
+
+        # Apply territory filters
+        df = inventory
+        if region:
+            df = df[df['region'] == region]
+        if state:
+            df = df[df['state'] == state]
+
+        if len(df) == 0:
+            return self._empty_health_score_response()
+
+        # Calculate Thor share score (0-25)
+        thor_units = df[df['manufacturer'].apply(self._is_thor_brand)].shape[0]
+        total_units = len(df)
+        thor_share_percent = (thor_units / total_units * 100) if total_units > 0 else 0
+        thor_share_score = min(25, thor_share_percent)  # Max 25 points at 25%+ share
+
+        # Calculate velocity score (0-25) - based on avg days to sell vs market
+        sales_df = sales
+        if sales_df is not None and len(sales_df) > 0:
+            if region and 'region' in sales_df.columns:
+                sales_df = sales_df[sales_df['region'] == region]
+            if state and 'state' in sales_df.columns:
+                sales_df = sales_df[sales_df['state'] == state]
+
+            if 'days_to_sell' in sales_df.columns and len(sales_df) > 0:
+                avg_days = sales_df['days_to_sell'].mean()
+                # Score: 25 at 30 days, 0 at 90 days
+                velocity_score = max(0, min(25, 25 - ((avg_days - 30) / 60 * 25)))
+            else:
+                velocity_score = 12.5  # Default middle score
+        else:
+            velocity_score = 12.5
+
+        # Calculate freshness score (0-25) - based on avg days on lot
+        if 'days_on_lot' in df.columns:
+            avg_days_on_lot = df['days_on_lot'].mean()
+            # Score: 25 at 30 days, 0 at 120 days
+            freshness_score = max(0, min(25, 25 - ((avg_days_on_lot - 30) / 90 * 25)))
+        else:
+            freshness_score = 12.5
+
+        # Calculate opportunity score (0-25) - based on coverage of RV types
+        if 'rv_type' in df.columns:
+            rv_types_covered = df['rv_type'].nunique()
+            total_rv_types = 9  # Total RV types in market
+            opportunity_score = min(25, (rv_types_covered / total_rv_types) * 25)
+        else:
+            opportunity_score = 12.5
+
+        total_score = round(thor_share_score + velocity_score + freshness_score + opportunity_score)
+
+        return {
+            'score': total_score,
+            'max_score': 100,
+            'trend': 'up' if total_score >= 70 else 'flat' if total_score >= 50 else 'down',
+            'trend_value': 3,  # Placeholder - would need historical data
+            'components': {
+                'thor_share': round(thor_share_score, 1),
+                'velocity': round(velocity_score, 1),
+                'freshness': round(freshness_score, 1),
+                'opportunities': round(opportunity_score, 1),
+            },
+            'metrics': {
+                'thor_share_percent': round(thor_share_percent, 1),
+                'thor_units': thor_units,
+                'total_units': total_units,
+                'avg_days_on_lot': round(df['days_on_lot'].mean(), 1) if 'days_on_lot' in df.columns else None,
+                'total_dealers': df['dealer_group'].nunique() if 'dealer_group' in df.columns else 0,
+            }
+        }
+
+    def _empty_health_score_response(self) -> Dict[str, Any]:
+        """Return empty health score response."""
+        return {
+            'score': 0,
+            'max_score': 100,
+            'trend': 'flat',
+            'trend_value': 0,
+            'components': {
+                'thor_share': 0,
+                'velocity': 0,
+                'freshness': 0,
+                'opportunities': 0,
+            },
+            'metrics': {
+                'thor_share_percent': 0,
+                'thor_units': 0,
+                'total_units': 0,
+                'avg_days_on_lot': None,
+                'total_dealers': 0,
+            }
+        }
+
+    def get_priority_dealers(
+        self,
+        region: str = None,
+        state: str = None,
+        limit: int = 10,
+    ) -> List[Dict[str, Any]]:
+        """
+        Get priority dealers ranked by opportunity score.
+        """
+        inventory = self._cache.get('inventory')
+
+        if inventory is None:
+            return []
+
+        # Apply territory filters
+        df = inventory
+        if region:
+            df = df[df['region'] == region]
+        if state:
+            df = df[df['state'] == state]
+
+        if len(df) == 0:
+            return []
+
+        # Market averages for comparison
+        market_thor_share = df[df['manufacturer'].apply(self._is_thor_brand)].shape[0] / len(df) * 100
+        market_avg_days = df['days_on_lot'].mean() if 'days_on_lot' in df.columns else 45
+
+        # Group by dealer
+        dealers = []
+        for dealer_group, group in df.groupby('dealer_group'):
+            if pd.isna(dealer_group):
+                continue
+
+            total_units = len(group)
+            total_value = group['price'].sum() if 'price' in group.columns else 0
+            avg_price = group['price'].mean() if 'price' in group.columns else 0
+            avg_days_on_lot = group['days_on_lot'].mean() if 'days_on_lot' in group.columns else 0
+
+            # Calculate Thor share at this dealer
+            thor_units = group[group['manufacturer'].apply(self._is_thor_brand)].shape[0]
+            thor_share = (thor_units / total_units * 100) if total_units > 0 else 0
+
+            # Calculate opportunity score (0-100)
+            score_components = []
+
+            # Thor share gap (up to 40 points if low Thor share)
+            thor_gap = max(0, market_thor_share - thor_share)
+            thor_score = min(40, thor_gap * 2)
+            score_components.append(thor_score)
+
+            # Aging inventory (up to 30 points if high aging)
+            if avg_days_on_lot > 60:
+                aging_score = min(30, (avg_days_on_lot - 60) / 2)
+            else:
+                aging_score = 0
+            score_components.append(aging_score)
+
+            # Inventory size (up to 20 points for larger dealers)
+            size_score = min(20, total_units / 50)
+            score_components.append(size_score)
+
+            # RV type coverage gap (up to 10 points)
+            rv_types_at_dealer = group['rv_type'].nunique() if 'rv_type' in group.columns else 0
+            coverage_score = max(0, 10 - rv_types_at_dealer)
+            score_components.append(coverage_score)
+
+            opportunity_score = sum(score_components)
+
+            # Determine risk level
+            if thor_share < market_thor_share * 0.5 or avg_days_on_lot > 90:
+                risk_level = 'high'
+            elif thor_share < market_thor_share * 0.75 or avg_days_on_lot > 60:
+                risk_level = 'medium'
+            else:
+                risk_level = 'low'
+
+            # Determine recommended action
+            if avg_days_on_lot > 90:
+                recommended_action = 'visit'
+            elif thor_share < market_thor_share * 0.5:
+                recommended_action = 'call'
+            else:
+                recommended_action = 'monitor'
+
+            # Get location info
+            location = group['city'].iloc[0] if 'city' in group.columns and pd.notna(group['city'].iloc[0]) else ''
+            state_val = group['state'].iloc[0] if 'state' in group.columns else ''
+
+            dealers.append({
+                'id': str(dealer_group),
+                'name': str(dealer_group),
+                'location': f"{location}, {state_val}" if location else state_val,
+                'state': state_val,
+                'total_units': int(total_units),
+                'total_value': float(total_value),
+                'avg_price': float(avg_price),
+                'avg_days_on_lot': round(avg_days_on_lot, 1),
+                'thor_units': int(thor_units),
+                'thor_share': round(thor_share, 1),
+                'opportunity_score': round(opportunity_score),
+                'risk_level': risk_level,
+                'recommended_action': recommended_action,
+                'top_opportunity': self._get_top_opportunity(group, thor_share, market_thor_share),
+            })
+
+        # Sort by opportunity score descending
+        dealers.sort(key=lambda x: x['opportunity_score'], reverse=True)
+
+        return dealers[:limit]
+
+    def _get_top_opportunity(self, dealer_df: pd.DataFrame, thor_share: float, market_thor_share: float) -> str:
+        """Generate top opportunity text for a dealer."""
+        # Check for aging Thor units
+        if 'days_on_lot' in dealer_df.columns:
+            aging_thor = dealer_df[
+                (dealer_df['manufacturer'].apply(self._is_thor_brand)) &
+                (dealer_df['days_on_lot'] > 90)
+            ]
+            if len(aging_thor) > 0:
+                return f"Thor units aging 90+ days ({len(aging_thor)} units)"
+
+        # Check for low Thor share
+        if thor_share < market_thor_share * 0.5:
+            return "Thor share significantly below market average"
+
+        # Check for missing RV types
+        if 'rv_type' in dealer_df.columns:
+            current_types = set(dealer_df['rv_type'].dropna().unique())
+            all_types = {'TRAVEL TRAILER', 'FIFTH WHEEL', 'CLASS A', 'CLASS B', 'CLASS C'}
+            missing = all_types - current_types
+            if 'CLASS B' in missing:
+                return "No Class B inventory - Thor Sequence opportunity"
+            if missing:
+                return f"Missing RV types: {', '.join(list(missing)[:2])}"
+
+        return "Strengthen partnership with volume incentives"
+
+    def get_territory_alerts(
+        self,
+        region: str = None,
+        state: str = None,
+        limit: int = 10,
+    ) -> List[Dict[str, Any]]:
+        """Get AI-generated alerts for the territory."""
+        inventory = self._cache.get('inventory')
+
+        if inventory is None:
+            return []
+
+        # Apply territory filters
+        df = inventory
+        if region:
+            df = df[df['region'] == region]
+        if state:
+            df = df[df['state'] == state]
+
+        alerts = []
+        alert_id = 1
+
+        # Check for aging Thor inventory (90+ days)
+        if 'days_on_lot' in df.columns:
+            aging_thor = df[
+                (df['manufacturer'].apply(self._is_thor_brand)) &
+                (df['days_on_lot'] > 90)
+            ]
+            if len(aging_thor) > 0:
+                top_dealer = aging_thor.groupby('dealer_group').size().idxmax()
+                count_at_dealer = aging_thor[aging_thor['dealer_group'] == top_dealer].shape[0]
+                alerts.append({
+                    'id': str(alert_id),
+                    'type': 'warning',
+                    'priority': 'high',
+                    'message': f"{count_at_dealer} Thor units aged 90+ days at {top_dealer}",
+                    'dealer': str(top_dealer),
+                    'dealer_group': str(top_dealer),
+                    'action': 'Review aging inventory',
+                    'metric_value': count_at_dealer,
+                })
+                alert_id += 1
+
+        # Check for dealers with low Thor share
+        for dealer_group, group in df.groupby('dealer_group'):
+            if pd.isna(dealer_group):
+                continue
+
+            total = len(group)
+            thor_units = group[group['manufacturer'].apply(self._is_thor_brand)].shape[0]
+            thor_share = (thor_units / total * 100) if total > 0 else 0
+
+            if thor_share < 10 and total > 50:
+                alerts.append({
+                    'id': str(alert_id),
+                    'type': 'risk',
+                    'priority': 'high',
+                    'message': f"{dealer_group}: Thor share only {thor_share:.1f}%",
+                    'dealer': str(dealer_group),
+                    'dealer_group': str(dealer_group),
+                    'action': 'Schedule dealer visit',
+                    'metric_value': round(thor_share, 1),
+                })
+                alert_id += 1
+                if len(alerts) >= limit:
+                    break
+
+        # Check for Class B opportunity
+        dealers_without_class_b = []
+        for dealer_group, group in df.groupby('dealer_group'):
+            if pd.isna(dealer_group):
+                continue
+            if 'rv_type' in group.columns:
+                rv_types = set(group['rv_type'].dropna().unique())
+                if 'CLASS B' not in rv_types and len(group) > 30:
+                    dealers_without_class_b.append(dealer_group)
+
+        if dealers_without_class_b and len(alerts) < limit:
+            dealer = dealers_without_class_b[0]
+            alerts.append({
+                'id': str(alert_id),
+                'type': 'opportunity',
+                'priority': 'medium',
+                'message': f"{dealer}: Class B opportunity identified",
+                'dealer': str(dealer),
+                'dealer_group': str(dealer),
+                'action': 'Present Thor Sequence lineup',
+                'metric_value': len(dealers_without_class_b),
+            })
+
+        return alerts[:limit]
+
+    def get_pricing_analysis(
+        self,
+        dealer_group: str = None,
+        rv_type: str = None,
+        condition: str = None,
+        threshold_percent: float = 10.0,
+    ) -> Dict[str, Any]:
+        """Get pricing analysis with overpriced/underpriced units."""
+        inventory = self._cache.get('inventory')
+
+        if inventory is None:
+            return self._empty_pricing_response()
+
+        df = inventory.copy()
+
+        # Apply filters
+        if dealer_group:
+            df = self._apply_filter(df, 'dealer_group', dealer_group)
+        if rv_type:
+            df = self._apply_filter(df, 'rv_type', rv_type)
+        if condition:
+            df = self._apply_filter(df, 'condition', condition)
+
+        if len(df) == 0 or 'price' not in df.columns:
+            return self._empty_pricing_response()
+
+        # Calculate median prices by model
+        group_col = 'model' if 'model' in df.columns else 'manufacturer'
+        median_prices = df.groupby(group_col)['price'].median()
+
+        # Calculate over/under for each unit
+        df['median_price'] = df[group_col].map(median_prices)
+        df['price_diff'] = df['price'] - df['median_price']
+        df['price_diff_percent'] = (df['price_diff'] / df['median_price'] * 100).fillna(0)
+
+        # Identify overpriced and underpriced
+        overpriced_mask = df['price_diff_percent'] > threshold_percent
+        underpriced_mask = df['price_diff_percent'] < -threshold_percent
+
+        overpriced_df = df[overpriced_mask].nlargest(20, 'price_diff_percent')
+        underpriced_df = df[underpriced_mask].nsmallest(20, 'price_diff_percent')
+
+        overpriced_units = []
+        for _, row in overpriced_df.iterrows():
+            overpriced_units.append({
+                'stock_number': row.get('stock_number', ''),
+                'dealer': row.get('dealership', ''),
+                'dealer_group': row.get('dealer_group', ''),
+                'model': f"{row.get('model_year', '')} {row.get('manufacturer', '')} {row.get('model', '')}".strip(),
+                'condition': row.get('condition', ''),
+                'price': float(row['price']),
+                'median_price': float(row['median_price']),
+                'amount_over': float(row['price_diff']),
+                'percent_over': round(row['price_diff_percent'], 1),
+                'days_on_lot': int(row['days_on_lot']) if pd.notna(row.get('days_on_lot')) else None,
+            })
+
+        underpriced_units = []
+        for _, row in underpriced_df.iterrows():
+            underpriced_units.append({
+                'stock_number': row.get('stock_number', ''),
+                'dealer': row.get('dealership', ''),
+                'dealer_group': row.get('dealer_group', ''),
+                'model': f"{row.get('model_year', '')} {row.get('manufacturer', '')} {row.get('model', '')}".strip(),
+                'condition': row.get('condition', ''),
+                'price': float(row['price']),
+                'median_price': float(row['median_price']),
+                'amount_under': abs(float(row['price_diff'])),
+                'percent_under': abs(round(row['price_diff_percent'], 1)),
+                'potential_gain': abs(float(row['price_diff'])) * 0.8,
+            })
+
+        return {
+            'total_units': len(df),
+            'avg_price': float(df['price'].mean()),
+            'median_price': float(df['price'].median()),
+            'min_price': float(df['price'].min()),
+            'max_price': float(df['price'].max()),
+            'overpriced_count': int(overpriced_mask.sum()),
+            'underpriced_count': int(underpriced_mask.sum()),
+            'threshold_percent': threshold_percent,
+            'overpriced_units': overpriced_units,
+            'underpriced_units': underpriced_units,
+        }
+
+    def _empty_pricing_response(self) -> Dict[str, Any]:
+        """Return empty pricing response."""
+        return {
+            'total_units': 0,
+            'avg_price': 0,
+            'median_price': 0,
+            'min_price': 0,
+            'max_price': 0,
+            'overpriced_count': 0,
+            'underpriced_count': 0,
+            'threshold_percent': 10.0,
+            'overpriced_units': [],
+            'underpriced_units': [],
+        }
+
+    def get_aging_analysis(
+        self,
+        dealer_group: str = None,
+        rv_type: str = None,
+        condition: str = None,
+    ) -> Dict[str, Any]:
+        """Get aging inventory analysis with bracket breakdown."""
+        inventory = self._cache.get('inventory')
+
+        if inventory is None or 'days_on_lot' not in inventory.columns:
+            return self._empty_aging_response()
+
+        df = inventory.copy()
+
+        # Apply filters
+        if dealer_group:
+            df = self._apply_filter(df, 'dealer_group', dealer_group)
+        if rv_type:
+            df = self._apply_filter(df, 'rv_type', rv_type)
+        if condition:
+            df = self._apply_filter(df, 'condition', condition)
+
+        if len(df) == 0:
+            return self._empty_aging_response()
+
+        # Calculate brackets
+        brackets = {
+            'fresh': int(((df['days_on_lot'] >= 0) & (df['days_on_lot'] <= 30)).sum()),
+            'normal': int(((df['days_on_lot'] > 30) & (df['days_on_lot'] <= 60)).sum()),
+            'aging': int(((df['days_on_lot'] > 60) & (df['days_on_lot'] <= 90)).sum()),
+            'stale': int(((df['days_on_lot'] > 90) & (df['days_on_lot'] <= 120)).sum()),
+            'critical': int((df['days_on_lot'] > 120).sum()),
+        }
+
+        total = len(df)
+        bracket_percentages = {k: round(v / total * 100, 1) for k, v in brackets.items()}
+
+        # Get critical units
+        critical_df = df[df['days_on_lot'] > 120].nlargest(20, 'days_on_lot')
+        critical_units = []
+        for _, row in critical_df.iterrows():
+            critical_units.append({
+                'stock_number': row.get('stock_number', ''),
+                'dealer': row.get('dealership', ''),
+                'dealer_group': row.get('dealer_group', ''),
+                'model': f"{row.get('model_year', '')} {row.get('manufacturer', '')} {row.get('model', '')}".strip(),
+                'condition': row.get('condition', ''),
+                'days_on_lot': int(row['days_on_lot']),
+                'price': float(row['price']) if pd.notna(row.get('price')) else None,
+            })
+
+        # Aging by condition
+        by_condition = []
+        if 'condition' in df.columns:
+            for cond, group in df.groupby('condition'):
+                if pd.isna(cond):
+                    continue
+                by_condition.append({
+                    'name': str(cond),
+                    'total_units': len(group),
+                    'avg_days_on_lot': round(group['days_on_lot'].mean(), 1),
+                    'critical_count': int((group['days_on_lot'] > 120).sum()),
+                })
+
+        # Aging by RV type
+        by_rv_type = []
+        if 'rv_type' in df.columns:
+            for rv, group in df.groupby('rv_type'):
+                if pd.isna(rv):
+                    continue
+                by_rv_type.append({
+                    'name': str(rv),
+                    'total_units': len(group),
+                    'avg_days_on_lot': round(group['days_on_lot'].mean(), 1),
+                    'critical_count': int((group['days_on_lot'] > 120).sum()),
+                    'total_value': float(group['price'].sum()) if 'price' in group.columns else 0,
+                })
+            by_rv_type.sort(key=lambda x: x['avg_days_on_lot'], reverse=True)
+
+        # Aging by dealer
+        by_dealer = []
+        if 'dealer_group' in df.columns:
+            for dealer, group in df.groupby('dealer_group'):
+                if pd.isna(dealer):
+                    continue
+                critical_count = int((group['days_on_lot'] > 120).sum())
+                critical_value = float(group[group['days_on_lot'] > 120]['price'].sum()) if 'price' in group.columns else 0
+                by_dealer.append({
+                    'name': str(dealer),
+                    'total_units': len(group),
+                    'avg_days_on_lot': round(group['days_on_lot'].mean(), 1),
+                    'critical_count': critical_count,
+                    'critical_value': critical_value,
+                })
+            by_dealer.sort(key=lambda x: x['avg_days_on_lot'], reverse=True)
+
+        # Find oldest unit
+        oldest_idx = df['days_on_lot'].idxmax()
+        oldest_row = df.loc[oldest_idx]
+        oldest_unit = {
+            'stock_number': oldest_row.get('stock_number', ''),
+            'days_on_lot': int(oldest_row['days_on_lot']),
+            'model': f"{oldest_row.get('model_year', '')} {oldest_row.get('manufacturer', '')} {oldest_row.get('model', '')}".strip(),
+        }
+
+        return {
+            'total_units': total,
+            'avg_days_on_lot': round(df['days_on_lot'].mean(), 1),
+            'brackets': brackets,
+            'bracket_percentages': bracket_percentages,
+            'critical_value': float(df[df['days_on_lot'] > 120]['price'].sum()) if 'price' in df.columns else 0,
+            'oldest_unit': oldest_unit,
+            'critical_units': critical_units[:20],
+            'by_condition': by_condition,
+            'by_rv_type': by_rv_type[:10],
+            'by_dealer': by_dealer[:10],
+        }
+
+    def _empty_aging_response(self) -> Dict[str, Any]:
+        """Return empty aging response."""
+        return {
+            'total_units': 0,
+            'avg_days_on_lot': 0,
+            'brackets': {'fresh': 0, 'normal': 0, 'aging': 0, 'stale': 0, 'critical': 0},
+            'bracket_percentages': {'fresh': 0, 'normal': 0, 'aging': 0, 'stale': 0, 'critical': 0},
+            'critical_value': 0,
+            'oldest_unit': None,
+            'critical_units': [],
+            'by_condition': [],
+            'by_rv_type': [],
+            'by_dealer': [],
+        }
+
+    def get_dealer_opportunities(self, dealer_group: str) -> List[Dict[str, Any]]:
+        """Get opportunities specific to a dealer."""
+        inventory = self._cache.get('inventory')
+
+        if inventory is None or not dealer_group:
+            return []
+
+        df = inventory[inventory['dealer_group'] == dealer_group]
+        if len(df) == 0:
+            return []
+
+        opportunities = []
+        opp_id = 1
+
+        # Market averages
+        market_thor_share = inventory[inventory['manufacturer'].apply(self._is_thor_brand)].shape[0] / len(inventory) * 100
+        market_avg_days = inventory['days_on_lot'].mean() if 'days_on_lot' in inventory.columns else 45
+
+        # Dealer metrics
+        thor_units = df[df['manufacturer'].apply(self._is_thor_brand)].shape[0]
+        thor_share = (thor_units / len(df) * 100) if len(df) > 0 else 0
+        avg_days = df['days_on_lot'].mean() if 'days_on_lot' in df.columns else 0
+
+        # Check for aging Thor units
+        if 'days_on_lot' in df.columns:
+            aging_thor = df[
+                (df['manufacturer'].apply(self._is_thor_brand)) &
+                (df['days_on_lot'] > 90)
+            ]
+            if len(aging_thor) > 0:
+                opportunities.append({
+                    'id': str(opp_id),
+                    'type': 'aging_risk',
+                    'headline': 'Thor units aging on lot',
+                    'detail': f"{len(aging_thor)} Thor units have been on lot 90+ days",
+                    'priority': 'high',
+                    'suggested_action': 'Review aging inventory and discuss promotional options',
+                    'potential_value': float(aging_thor['price'].sum()) if 'price' in aging_thor.columns else 0,
+                })
+                opp_id += 1
+
+        # Check Thor share vs market
+        if thor_share < market_thor_share - 5:
+            opportunities.append({
+                'id': str(opp_id),
+                'type': 'share_recovery',
+                'headline': 'Thor share below market average',
+                'detail': f"Thor share is {thor_share:.1f}% vs market {market_thor_share:.1f}%",
+                'priority': 'high',
+                'suggested_action': 'Discuss competitive positioning and incentives',
+                'potential_value': None,
+            })
+            opp_id += 1
+
+        # Check for missing RV types
+        if 'rv_type' in df.columns:
+            current_types = set(df['rv_type'].dropna().unique())
+            all_types = {'TRAVEL TRAILER', 'FIFTH WHEEL', 'CLASS A', 'CLASS B', 'CLASS C'}
+            missing = all_types - current_types
+
+            if 'CLASS B' in missing:
+                opportunities.append({
+                    'id': str(opp_id),
+                    'type': 'inventory_gap',
+                    'headline': 'No Class B inventory',
+                    'detail': 'Dealer has no Class B units. Thor Sequence is trending.',
+                    'priority': 'medium',
+                    'suggested_action': 'Present Thor Sequence lineup',
+                    'potential_value': None,
+                })
+                opp_id += 1
+
+        # Check velocity vs market
+        if avg_days > market_avg_days + 15:
+            opportunities.append({
+                'id': str(opp_id),
+                'type': 'velocity_mismatch',
+                'headline': 'Inventory turning slower than market',
+                'detail': f"Avg {avg_days:.0f} days on lot vs market {market_avg_days:.0f} days",
+                'priority': 'medium',
+                'suggested_action': 'Review pricing and marketing support',
+                'potential_value': None,
+            })
+
+        return opportunities
+
+    def get_dealer_talking_points(self, dealer_group: str) -> List[Dict[str, Any]]:
+        """Get auto-generated talking points for a dealer meeting."""
+        inventory = self._cache.get('inventory')
+
+        if inventory is None or not dealer_group:
+            return []
+
+        df = inventory[inventory['dealer_group'] == dealer_group]
+        if len(df) == 0:
+            return []
+
+        talking_points = []
+
+        # Market averages
+        market_avg_days = inventory['days_on_lot'].mean() if 'days_on_lot' in inventory.columns else 45
+        market_thor_share = inventory[inventory['manufacturer'].apply(self._is_thor_brand)].shape[0] / len(inventory) * 100
+
+        # Dealer metrics
+        thor_units = df[df['manufacturer'].apply(self._is_thor_brand)].shape[0]
+        thor_share = (thor_units / len(df) * 100) if len(df) > 0 else 0
+        avg_days = df['days_on_lot'].mean() if 'days_on_lot' in df.columns else 0
+
+        # Positive: Good velocity
+        if avg_days < market_avg_days - 5:
+            talking_points.append({
+                'category': 'positive',
+                'headline': 'Units turning faster than market',
+                'detail': f"Your average turn time is {avg_days:.0f} days vs market {market_avg_days:.0f} days",
+                'supporting_data': f'{len(df)} total units in inventory',
+            })
+
+        # Positive: Strong Thor presence
+        if thor_share > market_thor_share:
+            talking_points.append({
+                'category': 'positive',
+                'headline': 'Strong Thor partnership',
+                'detail': f"Thor brands represent {thor_share:.1f}% of your inventory",
+                'supporting_data': f'{thor_units} Thor units',
+            })
+
+        # Concern: Aging inventory
+        if avg_days > market_avg_days + 10:
+            talking_points.append({
+                'category': 'concern',
+                'headline': 'Some units aging on lot',
+                'detail': f"Average days on lot is {avg_days:.0f}. Let's look at aged units.",
+                'supporting_data': f'{len(df)} total units',
+            })
+
+        # Opportunity: Missing segments
+        if 'rv_type' in df.columns:
+            current_types = set(df['rv_type'].dropna().unique())
+            if 'CLASS B' not in current_types:
+                talking_points.append({
+                    'category': 'opportunity',
+                    'headline': 'Class B segment opportunity',
+                    'detail': 'No Class B inventory. Thor Sequence is our fastest-selling Class B.',
+                    'supporting_data': 'Van market up 15% YoY',
+                })
+
+        # Condition mix analysis
+        if 'condition' in df.columns:
+            new_count = len(df[df['condition'] == 'NEW'])
+            new_pct = (new_count / len(df) * 100) if len(df) > 0 else 0
+            if new_pct < 50:
+                talking_points.append({
+                    'category': 'concern',
+                    'headline': 'New inventory mix below industry average',
+                    'detail': f"Only {new_pct:.0f}% new units. Industry average is 60%+",
+                    'supporting_data': f'{new_count} new units, {len(df) - new_count} used',
+                })
+
+        return talking_points
