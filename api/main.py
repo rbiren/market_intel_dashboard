@@ -2630,3 +2630,231 @@ async def get_top_floorplans(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# =============================================================================
+# REP INTEL PLATFORM ENDPOINTS
+# =============================================================================
+
+@app.get("/territory/health-score")
+async def get_territory_health_score(
+    region: Optional[str] = Query(default=None, description="Filter by region"),
+    state: Optional[str] = Query(default=None, description="Filter by state")
+):
+    """
+    Get territory health score (0-100) with component breakdown.
+
+    Health score components:
+    - thor_share: Thor manufacturer market share (target: 40%)
+    - velocity: Sales velocity vs market average
+    - freshness: Inventory freshness (days on lot)
+    - opportunities: Identified growth opportunities
+
+    Returns overall score plus individual component scores.
+    """
+    try:
+        if not USE_DELTALAKE:
+            return {
+                "error": "Territory health score requires Delta Lake mode (USE_DELTALAKE=true)",
+                "score": 0,
+                "components": {}
+            }
+
+        return client.get_territory_health_score(region=region, state=state)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/territory/priority-dealers")
+async def get_territory_priority_dealers(
+    region: Optional[str] = Query(default=None, description="Filter by region"),
+    state: Optional[str] = Query(default=None, description="Filter by state"),
+    limit: int = Query(default=10, description="Number of dealers to return")
+):
+    """
+    Get priority dealers ranked by opportunity score.
+
+    Each dealer includes:
+    - opportunity_score: Overall priority score (0-100)
+    - risk_level: LOW, MEDIUM, or HIGH
+    - total_units: Current inventory count
+    - thor_share: Thor manufacturer percentage
+    - avg_days_on_lot: Average days on lot
+    - recommended_actions: List of suggested actions
+    """
+    try:
+        if not USE_DELTALAKE:
+            return {
+                "error": "Priority dealers requires Delta Lake mode (USE_DELTALAKE=true)",
+                "dealers": []
+            }
+
+        return client.get_priority_dealers(region=region, state=state, limit=limit)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/territory/alerts")
+async def get_territory_alerts(
+    region: Optional[str] = Query(default=None, description="Filter by region"),
+    state: Optional[str] = Query(default=None, description="Filter by state"),
+    limit: int = Query(default=10, description="Maximum number of alerts to return")
+):
+    """
+    Get territory alerts for attention items.
+
+    Alert types:
+    - AGING_INVENTORY: Units sitting too long (60+ days)
+    - LOW_THOR_SHARE: Dealers with below-target Thor share (<25%)
+    - HIGH_OPPORTUNITY: Dealers with expansion potential
+
+    Returns alerts sorted by priority (severity and impact).
+    """
+    try:
+        if not USE_DELTALAKE:
+            return {
+                "error": "Territory alerts requires Delta Lake mode (USE_DELTALAKE=true)",
+                "alerts": []
+            }
+
+        return client.get_territory_alerts(region=region, state=state, limit=limit)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/dealer/{dealer_group}/opportunities")
+async def get_dealer_opportunities(
+    dealer_group: str
+):
+    """
+    Get dealer-specific growth opportunities.
+
+    Analyzes dealer's inventory to identify:
+    - Missing high-demand RV types
+    - Underrepresented Thor models
+    - Pricing optimization opportunities
+    - Inventory mix recommendations
+
+    Each opportunity includes type, description, impact estimate, and priority.
+    """
+    try:
+        if not USE_DELTALAKE:
+            return {
+                "error": "Dealer opportunities requires Delta Lake mode (USE_DELTALAKE=true)",
+                "opportunities": []
+            }
+
+        return client.get_dealer_opportunities(dealer_group=dealer_group)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/dealer/{dealer_group}/talking-points")
+async def get_dealer_talking_points(
+    dealer_group: str
+):
+    """
+    Get auto-generated talking points for dealer meetings.
+
+    Generates contextual talking points based on:
+    - Dealer's current inventory status
+    - Thor share vs competitors
+    - Aging inventory concerns
+    - Growth opportunities
+
+    Each talking point includes type, content, and supporting data.
+    """
+    try:
+        if not USE_DELTALAKE:
+            return {
+                "error": "Dealer talking points requires Delta Lake mode (USE_DELTALAKE=true)",
+                "talking_points": []
+            }
+
+        return client.get_dealer_talking_points(dealer_group=dealer_group)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/pricing/analysis")
+async def get_pricing_analysis(
+    dealer_group: Optional[str] = Query(default=None, description="Filter by dealer group"),
+    rv_type: Optional[str] = Query(default=None, description="Filter by RV type"),
+    condition: Optional[str] = Query(default=None, description="Filter by condition (NEW/USED)"),
+    threshold_percent: float = Query(default=10.0, description="Percent above/below median to flag")
+):
+    """
+    Get pricing analysis identifying overpriced and underpriced inventory.
+
+    Compares each unit's price against median for its category (RV type + condition).
+    Units priced above/below threshold percentage from median are flagged.
+
+    Returns:
+    - summary: Overall pricing stats
+    - overpriced: Units priced significantly above median
+    - underpriced: Units priced significantly below median
+
+    Each unit includes stock_number, price, median_price, percent_diff, dealer, and model info.
+    """
+    try:
+        if not USE_DELTALAKE:
+            return {
+                "error": "Pricing analysis requires Delta Lake mode (USE_DELTALAKE=true)",
+                "summary": {},
+                "overpriced": [],
+                "underpriced": []
+            }
+
+        return client.get_pricing_analysis(
+            dealer_group=dealer_group,
+            rv_type=rv_type,
+            condition=condition,
+            threshold_percent=threshold_percent
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/aging/analysis")
+async def get_aging_analysis(
+    dealer_group: Optional[str] = Query(default=None, description="Filter by dealer group"),
+    rv_type: Optional[str] = Query(default=None, description="Filter by RV type"),
+    condition: Optional[str] = Query(default=None, description="Filter by condition (NEW/USED)")
+):
+    """
+    Get aging inventory analysis with bracket breakdown.
+
+    Aging brackets:
+    - FRESH: 0-30 days on lot
+    - NORMAL: 31-60 days
+    - AGING: 61-90 days
+    - STALE: 91-120 days
+    - CRITICAL: 120+ days
+
+    Returns:
+    - summary: Total units, avg days on lot, total value at risk
+    - brackets: Count and value breakdown by age bracket
+    - by_rv_type: Aging breakdown by RV type
+    - by_dealer: Top dealers by aging inventory
+    - critical_units: List of units over 120 days
+
+    Useful for identifying inventory turn problems and aged stock needing attention.
+    """
+    try:
+        if not USE_DELTALAKE:
+            return {
+                "error": "Aging analysis requires Delta Lake mode (USE_DELTALAKE=true)",
+                "summary": {},
+                "brackets": [],
+                "by_rv_type": [],
+                "by_dealer": [],
+                "critical_units": []
+            }
+
+        return client.get_aging_analysis(
+            dealer_group=dealer_group,
+            rv_type=rv_type,
+            condition=condition
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
